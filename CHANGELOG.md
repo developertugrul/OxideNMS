@@ -5,6 +5,17 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.4] - 2026-07-05
+
+### Added
+
+- Device Discovery screen for bounded CIDR scanning and inventory import.
+- Audit Log screen with filtering and CSV copy support.
+
+### Fixed
+
+- Expanded Linux CI dependencies for egui/eframe release verification.
+
 ## [1.0.3] - 2026-07-05
 
 ### Added
