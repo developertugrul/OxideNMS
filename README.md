@@ -1,80 +1,87 @@
-# OxideNMS 🚀
+<div align="center">
+  <img src="https://img.icons8.com/color/120/000000/network-cable.png" alt="OxideNMS Logo" width="100"/>
+  <h1>OxideNMS</h1>
+  <p><strong>A Modern, Fast, and Secure Network Management System Written in Rust</strong></p>
 
-![Rust](https://img.shields.io/badge/rust-v1.80%2B-orange?style=flat-square&logo=rust)
-![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)
+  <p>
+    <a href="https://github.com/developertugrul/OxideNMS/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
+    </a>
+    <img src="https://img.shields.io/badge/language-Rust-orange.svg" alt="Made with Rust" />
+    <img src="https://img.shields.io/badge/UI-egui-yellow.svg" alt="egui UI" />
+  </p>
 
-**OxideNMS**, ağ mühendisleri ve sistem yöneticileri için tamamen [Rust](https://www.rust-lang.org/) ile geliştirilmiş, ultra hızlı, güvenli ve açık kaynaklı bir **Ağ Yönetim Sistemi (NMS)**'dir. 
+  <p>
+    <b>English</b> | <a href="README.tr.md">Türkçe</a>
+  </p>
+</div>
 
-Geleneksel ağ yönetim araçlarının karmaşıklığından kurtulun. OxideNMS, tek bir güvenli çatı altında tüm ağ cihazlarınızı yönetmenizi, yapılandırmanızı ve izlemenizi sağlar. EGUI tabanlı modern grafik arayüzü ile çapraz platform çalışır.
-
----
-
-## 🔥 Temel Özellikler (Features)
-
-- **🔒 Güvenli Cihaz Kasası (Device Vault)**
-  - Cihaz şifreleriniz ve SSH anahtarlarınız SQLite veritabanında düz metin olarak **TUTULMAZ**.
-  - Tüm kimlik bilgileri, uygulamanın başında sizin belirlediğiniz bir **Master Password** ile PBKDF2 ve **AES-256-GCM** kullanılarak askeri standartlarda şifrelenir.
-- **🗺️ Dinamik SNMP Topoloji Haritası**
-  - Ağınızdaki cihazların durumunu (UP/DOWN) anlık olarak izleyin.
-  - Sürüklenebilir interaktif arayüz ile kendi topolojinizi çizin.
-- **⚡ Toplu Dağıtım (Bulk Deployment)**
-  - Aynı anda 50 farklı cihaza komut mu göndermeniz gerekiyor? 
-  - OxideNMS, Rust'ın muazzam eşzamanlılık (multi-threading) gücüyle yüzlerce cihaza saniyeler içinde paralel SSH bağlantısı kurarak komutlarınızı işletir.
-- **⏱️ Otomatik Yedekleme Servisi (Scheduled Backups)**
-  - Arka planda çalışan zamanlayıcı servis sayesinde ağ cihazlarınızın `running-config` yedeği, sizin belirlediğiniz saat periyotlarında otomatik olarak alınır ve veritabanına kaydedilir.
-- **🔍 Config Diff & Güvenlik Analizi**
-  - İki farklı konfigürasyon dosyasını karşılaştırın (Diff).
-  - Cihazınızdaki güvenlik açıklarını saniyeler içinde tespit eden otomatik Denetim Modülü (Security Audit).
-- **🧮 Ağ Planlama Araçları**
-  - Hızlı IPv4 Subnet hesaplayıcı (Network, Broadcast, Host aralıkları).
-  - Dinamik VLAN şablon ve komut üretici.
+## 📌 About
+**OxideNMS** is a high-performance, enterprise-grade Network Management System (NMS) developed for network administrators and engineers. Powered by the **Rust** programming language and the **egui** graphics library, it comes as a single executable and launches in milliseconds. Securely manage, backup, monitor, and template your network infrastructure.
 
 ---
 
-## 🛠️ Kurulum (Installation)
+## 🚀 Features
 
-OxideNMS, ek bir bağımlılık olmadan çalışabilen tek bir çalıştırılabilir dosya (binary) olarak gelir. 
+### 📊 Monitoring & Management
+- **Performance Dashboard:** Monitor CPU and RAM usage of your devices with real-time graphs.
+- **SNMP Topology Map (Cisco CDP/LLDP):** Discover devices on your network via SNMP and draw connection maps.
+- **Built-in Syslog Server (UDP 514):** Centrally collect and analyze logs from your network devices.
 
-### Hazır Sürümler (Pre-built Binaries)
-GitHub üzerindeki [Releases](https://github.com/developertugrul/OxideNMS/releases) sayfasından işletim sisteminize uygun (Windows `.exe`, macOS veya Linux) sürümü indirebilirsiniz. Sürümler GitHub Actions tarafından otomatik derlenmektedir.
+### ⚙️ Configuration & Automation
+- **Bulk Deploy:** Send configurations to hundreds of devices with a single click.
+- **Template Engine (Jinja2):** Create parametric network configuration templates powered by the `minijinja` engine.
+- **Auto Backup Service:** Automatically fetch and archive network device configurations in the background.
+- **Diff Engine:** Compare old and new configurations of devices side-by-side (Git diff style).
+- **Auto Firmware (IOS) Update:** Easily update device images via integrated TFTP/FTP workflows.
 
-### Kaynaktan Derleme (Build from Source)
-Proje açık kaynak olduğu için kendi ortamınızda anında derleyebilirsiniz:
+### 🛠️ Tools & Utilities
+- **Device Manager:** Keep track of IP addresses, credentials, and hardware inventory for all your network equipment (SQLite).
+- **Subnet Calculator (IPv4/IPv6):** Fast and practical IP subnetting.
+- **VLAN Manager:** Easy VLAN pool management for switches.
+- **Built-in SSH Terminal:** Connect directly to devices in seconds without needing an external client like PuTTY or SecureCRT.
 
-1. [Rust](https://rustup.rs/) kurulu olduğundan emin olun.
-2. Repoyu bilgisayarınıza klonlayın:
-   ```bash
-   git clone https://github.com/yourusername/oxidenms.git
-   cd oxidenms
-   ```
-3. Projeyi derleyin ve çalıştırın:
-   ```bash
-   cargo run --release
-   ```
-
----
-
-## 📚 Kullanım (Usage)
-
-1. **İlk Çalıştırma:** Uygulamayı açtığınızda `Cihaz Yönetimi` sekmesine gidin.
-2. **Kasa (Vault) Kurulumu:** Cihazlarınızı güvenle saklamak için bir **Master Password** belirleyin.
-3. **Cihaz Ekleme:** Ağ cihazlarınızın IP, Kullanıcı Adı ve Şifre/Anahtar bilgilerini sisteme kaydedin.
-4. **Toplu Yönetim:** `Bulk Deploy` veya `Topoloji Haritası` sekmelerine geçerek otomasyonun keyfini çıkarın!
+### 🔒 Enterprise Security
+- **Master Password Encryption (AES-256-GCM):** Passwords in the database are encrypted using your master password. Device credentials are never stored as plaintext on disk!
 
 ---
 
-## 🏗️ Katkıda Bulunma (Contributing)
+## 📥 Installation
 
-Bu proje açık kaynak topluluğu için geliştirilmiştir. Katkılarınızı büyük bir memnuniyetle bekliyoruz!
-1. Bu depoyu çatallayın (Fork).
-2. Yeni özelliğiniz için bir dal (branch) oluşturun (`git checkout -b ozellik/YeniGelistirme`).
-3. Değişikliklerinizi kaydedin (`git commit -m 'Yeni özellik eklendi'`).
-4. Dalınızı (branch) gönderin (`git push origin ozellik/YeniGelistirme`).
-5. Bir Çekme İsteği (Pull Request) oluşturun.
+OxideNMS is distributed as a single executable file. You do not need to install any heavy dependencies (like Python, Java, etc.).
 
-## 📄 Lisans (License)
-Bu proje **MIT Lisansı** ile lisanslanmıştır. Daha fazla bilgi için `LICENSE` dosyasına göz atabilirsiniz.
+### Build from Source
+If you have [Rust](https://rustup.rs/) installed:
+
+```bash
+# Clone the repository
+git clone https://github.com/developertugrul/OxideNMS.git
+cd OxideNMS
+
+# Build and run
+cargo run --release
+```
+Once compiled, you can move the generated `target/release/oxidenms.exe` file anywhere and run it independently.
 
 ---
-*OxideNMS — Güvenli, Hızlı, Paslanmaz.* 🦀
+
+## 📚 Usage
+1. **First Launch:** When you open the application, you will be prompted to set/enter a **Master Password**. This password is used to securely encrypt your device credentials in the database.
+2. **Adding Devices:** Go to the *Device Manager* from the left menu and add your devices.
+3. **Management:** Select the tool you need and start managing your network!
+
+---
+
+## 👨‍💻 Contributing
+This project is **Open Source** and welcomes contributions. Feel free to submit PRs and open Issues!
+
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
+
+## 📜 License
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.

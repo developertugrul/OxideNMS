@@ -22,8 +22,7 @@ impl Subnet {
     /// Bu, OOP'deki "constructor" gibidir: gecerli olmayan girdiyi
     /// asla nesneye donusturmez, hata dondurur.
     pub fn parse(girdi: &str) -> Result<Self, NetworkError> {
-        let (ip_kismi, prefix_kismi) =
-            girdi.split_once('/').ok_or(NetworkError::InvalidFormat)?;
+        let (ip_kismi, prefix_kismi) = girdi.split_once('/').ok_or(NetworkError::InvalidFormat)?;
 
         let ip: Ipv4Addr = ip_kismi
             .parse()

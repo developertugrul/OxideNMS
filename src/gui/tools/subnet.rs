@@ -7,7 +7,7 @@
 
 use eframe::egui;
 
-use super::{ToolScreen, ToolEvent};
+use super::{ToolEvent, ToolScreen};
 use crate::i18n::{Language, Message, t};
 use crate::network::Subnet;
 
@@ -25,8 +25,10 @@ impl Default for SubnetTool {
 }
 
 impl ToolScreen for SubnetTool {
-    fn icon(&self) -> &'static str { "🖧" }
-    
+    fn icon(&self) -> &'static str {
+        "🖧"
+    }
+
     fn name(&self, dil: Language) -> &'static str {
         t(dil, Message::SubnetName)
     }
@@ -76,13 +78,21 @@ fn sonuc_tablosu(ui: &mut egui::Ui, dil: Language, net: &Subnet) {
         .spacing([24.0, 8.0])
         .striped(true)
         .show(ui, |ui| {
-            line(ui, t(dil, Message::Input), &format!("{}/{}", net.ip(), net.prefix()));
+            line(
+                ui,
+                t(dil, Message::Input),
+                &format!("{}/{}", net.ip(), net.prefix()),
+            );
             line(ui, t(dil, Message::SubnetMask), &net.mask().to_string());
             line(ui, t(dil, Message::Network), &net.network().to_string());
             line(ui, t(dil, Message::Broadcast), &net.broadcast().to_string());
             line(ui, t(dil, Message::FirstHost), &ilk_son.0);
             line(ui, t(dil, Message::LastHost), &ilk_son.1);
-            line(ui, t(dil, Message::UsableHosts), &net.usable_hosts().to_string());
+            line(
+                ui,
+                t(dil, Message::UsableHosts),
+                &net.usable_hosts().to_string(),
+            );
         });
 }
 

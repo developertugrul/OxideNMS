@@ -12,7 +12,11 @@ use eframe::egui;
 
 pub mod tools;
 
-use tools::{ToolScreen, ToolEvent, SettingsTool, SecurityTool, SubnetTool, DiffTool, SshTool, VlanTool, TopologyTool, DeviceManagerTool, BulkDeployTool, BackupTool, SnmpMapTool};
+use tools::{
+    BackupTool, BulkDeployTool, DashboardTool, DeviceManagerTool, DiffTool, FirmwareTool,
+    SecurityTool, SettingsTool, SnmpMapTool, SshTool, SubnetTool, SyslogTool, TemplateTool,
+    ToolEvent, ToolScreen, TopologyTool, VlanTool,
+};
 
 use crate::i18n::{Language, Message, t};
 use crate::settings::{AppSettings, Theme};
@@ -127,23 +131,22 @@ impl CiscoApp {
             Theme::Koyu => egui::Visuals::dark(),
             Theme::Acik => egui::Visuals::light(),
         };
-        
+
         // UI Enhancements
-        
-        
+
         visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(8);
         visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(8);
         visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(8);
         visuals.widgets.active.corner_radius = egui::CornerRadius::same(8);
         visuals.widgets.open.corner_radius = egui::CornerRadius::same(8);
-        
+
         if matches!(settings.tema, Theme::Koyu) {
             visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(25, 27, 30);
             visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(35, 38, 42);
         }
 
         ctx.set_visuals(visuals);
-        
+
         // Styling configuration for padding and spacing
         let mut style = (*ctx.style()).clone();
         style.spacing.item_spacing = egui::vec2(8.0, 8.0);
@@ -159,8 +162,8 @@ impl CiscoApp {
 
         let bg_ctx = ctx.clone();
         std::thread::spawn(move || {
-            let result = update::check(&manifest_url, env!("CARGO_PKG_VERSION"))
-                .map_err(|e| e.to_string());
+            let result =
+                update::check(&manifest_url, env!("CARGO_PKG_VERSION")).map_err(|e| e.to_string());
             let _ = tx.send(result);
             bg_ctx.request_repaint();
         });
@@ -175,6 +178,10 @@ impl CiscoApp {
                 Box::new(BulkDeployTool::default()),
                 Box::new(BackupTool::default()),
                 Box::new(SnmpMapTool::default()),
+                Box::new(SyslogTool::default()),
+                Box::new(TemplateTool::default()),
+                Box::new(DashboardTool::default()),
+                Box::new(FirmwareTool::default()),
                 Box::new(DiffTool::default()),
                 Box::new(SshTool::default()),
                 Box::new(SettingsTool::new(settings)),
@@ -240,7 +247,10 @@ impl eframe::App for CiscoApp {
                     // Language değişti: uygulama geneline anında uygula.
                     ToolEvent::LanguageSelected(yeni) => self.dil = yeni,
                     // Diff ekranına yönlendirme
-                    ToolEvent::SwitchToDiff { old_config, new_config } => {
+                    ToolEvent::SwitchToDiff {
+                        old_config,
+                        new_config,
+                    } => {
                         let mut diff_index = None;
                         for (i, tool) in self.tools.iter_mut().enumerate() {
                             if tool.id() == "diff" {
@@ -275,26 +285,27 @@ impl CiscoApp {
     fn sol_panel(&mut self, ctx: &egui::Context) {
         let dil = self.dil;
         // Araç adlarını önceden topla (borrow sorununu önlemek için).
-        let adlar: Vec<(&'static str, &'static str)> = self.tools.iter().map(|a| (a.icon(), a.name(dil))).collect();
+        let adlar: Vec<(&'static str, &'static str)> =
+            self.tools.iter().map(|a| (a.icon(), a.name(dil))).collect();
 
         egui::SidePanel::left("tools")
             .resizable(false)
             .exact_width(220.0)
             .show(ctx, |ui| {
                 ui.add_space(12.0);
-                
+
                 // Kategorileri tanımla: (Başlık, [Tool İndeksleri])
                 let kategoriler = vec![
-                    ("Ağ Planlama", vec![0, 1]),
-                    ("Cihaz Yönetimi", vec![4, 9, 5, 2, 7, 6, 8]),
-                    ("Güvenlik & Analiz", vec![3]),
-                    ("Sistem", vec![10]),
+                    ("Ağ Planlama", vec![0, 1, 9]),
+                    ("Cihaz Yönetimi", vec![4, 13, 5, 2, 7, 6, 11, 12]),
+                    ("Güvenlik & İzleme", vec![3, 8, 10]),
+                    ("Sistem", vec![14]),
                 ];
 
                 for (kat_adi, indeksler) in kategoriler {
                     ui.label(egui::RichText::new(kat_adi).strong().weak().size(14.0));
                     ui.add_space(4.0);
-                    
+
                     for i in indeksler {
                         if let Some((icon, name)) = adlar.get(i) {
                             let label = format!("{}  {}", icon, name);
@@ -305,7 +316,7 @@ impl CiscoApp {
                             } else {
                                 egui::RichText::new(label)
                             };
-                            
+
                             if ui.add(egui::SelectableLabel::new(selected, text)).clicked() {
                                 self.secili = i;
                             }
@@ -368,14 +379,19 @@ impl CiscoApp {
                 }
 
                 ui.add_space(24.0);
-                let buton =
-                    egui::Button::new(egui::RichText::new(t(dil, Message::DownloadUpdate)).size(16.0))
-                        .min_size(egui::vec2(220.0, 40.0));
+                let buton = egui::Button::new(
+                    egui::RichText::new(t(dil, Message::DownloadUpdate)).size(16.0),
+                )
+                .min_size(egui::vec2(220.0, 40.0));
                 if ui.add(buton).clicked() {
                     ctx.open_url(egui::OpenUrl::new_tab(&manifest.download_url));
                 }
                 ui.add_space(6.0);
-                ui.label(egui::RichText::new(t(dil, Message::DownloadInBrowser)).small().weak());
+                ui.label(
+                    egui::RichText::new(t(dil, Message::DownloadInBrowser))
+                        .small()
+                        .weak(),
+                );
             });
         });
     }

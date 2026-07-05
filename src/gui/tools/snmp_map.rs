@@ -1,11 +1,11 @@
-use eframe::egui;
-use crate::gui::tools::{ToolScreen, ToolEvent};
-use crate::i18n::{Language, Message, t};
 use crate::db;
+use crate::gui::tools::{ToolEvent, ToolScreen};
+use crate::i18n::{Language, Message, t};
+use eframe::egui;
+use snmp::{SyncSession, Value};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use snmp::{SyncSession, Value};
 
 #[derive(Clone)]
 pub struct Node {
@@ -75,7 +75,9 @@ impl SnmpMapTool {
 
     fn start_polling(&mut self, ctx: egui::Context) {
         if let Ok(mut lock) = self.is_polling.lock() {
-            if *lock { return; }
+            if *lock {
+                return;
+            }
             *lock = true;
         }
 
@@ -85,7 +87,9 @@ impl SnmpMapTool {
         thread::spawn(move || {
             loop {
                 if let Ok(lock) = is_polling.lock() {
-                    if !*lock { break; }
+                    if !*lock {
+                        break;
+                    }
                 }
 
                 let len = {
@@ -101,14 +105,18 @@ impl SnmpMapTool {
 
                     let sys_descr_oid = &[1, 3, 6, 1, 2, 1, 1, 1, 0];
                     let addr = format!("{}:161", ip);
-                    
+
                     let mut is_up = false;
                     let mut descr = String::new();
 
-                    if let Ok(mut sess) = SyncSession::new(addr, b"public", Some(Duration::from_secs(2)), 0) {
+                    if let Ok(mut sess) =
+                        SyncSession::new(addr, b"public", Some(Duration::from_secs(2)), 0)
+                    {
                         if let Ok(mut response) = sess.get(sys_descr_oid) {
                             is_up = true;
-                            if let Some((_oid, Value::OctetString(sys_descr))) = response.varbinds.next() {
+                            if let Some((_oid, Value::OctetString(sys_descr))) =
+                                response.varbinds.next()
+                            {
                                 descr = String::from_utf8_lossy(sys_descr).into_owned();
                             }
                         }
@@ -119,7 +127,7 @@ impl SnmpMapTool {
                         lock[i].sys_descr = descr;
                     }
                 }
-                
+
                 ctx.request_repaint();
                 thread::sleep(Duration::from_secs(10));
             }
@@ -170,15 +178,16 @@ impl ToolScreen for SnmpMapTool {
 
         ui.add_space(10.0);
 
-        let (response, painter) = ui.allocate_painter(ui.available_size(), egui::Sense::click_and_drag());
-        
+        let (response, painter) =
+            ui.allocate_painter(ui.available_size(), egui::Sense::click_and_drag());
+
         let rect = response.rect;
-        
+
         // Draw background
         painter.rect_filled(rect, 4.0, egui::Color32::from_rgb(30, 30, 30));
 
         let mut nodes = self.nodes.lock().unwrap();
-        
+
         // Handle dragging
         if let Some(id) = self.dragging_node {
             if response.dragged() {
@@ -192,7 +201,10 @@ impl ToolScreen for SnmpMapTool {
         } else if response.drag_started() {
             if let Some(pos) = response.interact_pointer_pos() {
                 for node in nodes.iter() {
-                    let node_rect = egui::Rect::from_center_size(rect.min + node.pos.to_vec2(), egui::vec2(100.0, 60.0));
+                    let node_rect = egui::Rect::from_center_size(
+                        rect.min + node.pos.to_vec2(),
+                        egui::vec2(100.0, 60.0),
+                    );
                     if node_rect.contains(pos) {
                         self.dragging_node = Some(node.id);
                         break;
@@ -205,14 +217,23 @@ impl ToolScreen for SnmpMapTool {
         for node in nodes.iter() {
             let center = rect.min + node.pos.to_vec2();
             let node_rect = egui::Rect::from_center_size(center, egui::vec2(120.0, 70.0));
-            
-            let fill_color = if node.is_up { egui::Color32::from_rgb(40, 100, 40) } else { egui::Color32::from_rgb(100, 40, 40) };
+
+            let fill_color = if node.is_up {
+                egui::Color32::from_rgb(40, 100, 40)
+            } else {
+                egui::Color32::from_rgb(100, 40, 40)
+            };
             let stroke = egui::Stroke::new(2.0, egui::Color32::WHITE);
-            
+
             painter.rect_filled(node_rect, 8.0, fill_color);
             painter.rect_stroke(node_rect, 8.0, stroke, egui::StrokeKind::Inside);
-            
-            let text = format!("{}\n{}\n{}", node.name, node.ip, if node.is_up { "UP" } else { "DOWN" });
+
+            let text = format!(
+                "{}\n{}\n{}",
+                node.name,
+                node.ip,
+                if node.is_up { "UP" } else { "DOWN" }
+            );
             painter.text(
                 center,
                 egui::Align2::CENTER_CENTER,

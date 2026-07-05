@@ -1,6 +1,6 @@
-use eframe::egui;
+use super::{ToolEvent, ToolScreen};
 use crate::i18n::{Language, Message, t};
-use super::{ToolScreen, ToolEvent};
+use eframe::egui;
 
 #[derive(Default, Clone)]
 pub struct Interface {
@@ -26,10 +26,14 @@ impl Default for TopologyTool {
 }
 
 impl ToolScreen for TopologyTool {
-    fn id(&self) -> &'static str { "topology" }
-    
-    fn icon(&self) -> &'static str { "🕸️" }
-    
+    fn id(&self) -> &'static str {
+        "topology"
+    }
+
+    fn icon(&self) -> &'static str {
+        "🕸️"
+    }
+
     fn name(&self, dil: Language) -> &'static str {
         t(dil, Message::TopologyName)
     }
@@ -41,7 +45,7 @@ impl ToolScreen for TopologyTool {
         ui.add_space(10.0);
 
         ui.label(t(dil, Message::TopologyConfigInput));
-        
+
         ui.add(
             egui::TextEdit::multiline(&mut self.config_input)
                 .desired_width(f32::INFINITY)
@@ -76,16 +80,19 @@ impl ToolScreen for TopologyTool {
                         // Rows
                         for intf in &self.interfaces {
                             ui.label(egui::RichText::new(&intf.name).monospace());
-                            
+
                             if intf.shutdown {
-                                ui.colored_label(egui::Color32::from_rgb(220, 80, 80), "DOWN (admin)");
+                                ui.colored_label(
+                                    egui::Color32::from_rgb(220, 80, 80),
+                                    "DOWN (admin)",
+                                );
                             } else {
                                 ui.colored_label(egui::Color32::from_rgb(80, 220, 80), "UP");
                             }
-                            
+
                             let ip_display = if intf.ip.is_empty() { "-" } else { &intf.ip };
                             ui.label(egui::RichText::new(ip_display).monospace());
-                            
+
                             let vlan_display = if !intf.vlan.is_empty() {
                                 format!("VLAN {}", intf.vlan)
                             } else if !intf.mode.is_empty() {
@@ -94,7 +101,7 @@ impl ToolScreen for TopologyTool {
                                 "-".to_owned()
                             };
                             ui.label(vlan_display);
-                            
+
                             ui.end_row();
                         }
                     });
@@ -138,7 +145,7 @@ impl TopologyTool {
                 }
             }
         }
-        
+
         if let Some(intf) = current_intf.take() {
             self.interfaces.push(intf);
         }

@@ -1,9 +1,9 @@
 use eframe::egui;
 
-use super::{ToolScreen, ToolEvent};
+use super::{ToolEvent, ToolScreen};
+use crate::db;
 use crate::i18n::{Language, Message, t};
 use crate::network::diff::{self, DiffRow, DiffType};
-use crate::db;
 
 pub struct DiffTool {
     old_config: String,
@@ -26,10 +26,14 @@ impl Default for DiffTool {
 }
 
 impl ToolScreen for DiffTool {
-    fn id(&self) -> &'static str { "diff" }
-    
-    fn icon(&self) -> &'static str { "🔄" }
-    
+    fn id(&self) -> &'static str {
+        "diff"
+    }
+
+    fn icon(&self) -> &'static str {
+        "🔄"
+    }
+
     fn name(&self, dil: Language) -> &'static str {
         t(dil, Message::DiffName)
     }
@@ -68,13 +72,17 @@ impl ToolScreen for DiffTool {
             }
 
             ui.add_space(20.0);
-            
+
             ui.label("Device Adı:");
             ui.text_edit_singleline(&mut self.device_name);
             if ui.button(t(dil, Message::DiffSaveToDb)).clicked() {
                 match db::get_connection() {
                     Ok(conn) => {
-                        let device_id = match db::devices::get_or_create_device(&conn, &self.device_name, "Bilinmiyor") {
+                        let device_id = match db::devices::get_or_create_device(
+                            &conn,
+                            &self.device_name,
+                            "Bilinmiyor",
+                        ) {
                             Ok(id) => id,
                             Err(_) => 1,
                         };
@@ -82,7 +90,7 @@ impl ToolScreen for DiffTool {
                             Ok(_) => self.db_mesaj = Some("Veritabanına Saved!".to_owned()),
                             Err(e) => self.db_mesaj = Some(format!("Kayıt Hatası: {}", e)),
                         }
-                    },
+                    }
                     Err(e) => self.db_mesaj = Some(format!("Bağlantı Hatası: {}", e)),
                 }
             }
@@ -121,5 +129,3 @@ impl ToolScreen for DiffTool {
         self.db_mesaj = None;
     }
 }
-
-

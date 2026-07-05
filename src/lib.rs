@@ -11,11 +11,11 @@
 //!   - `gui`     : masaustu grafik arayuz (egui)
 
 pub mod cli;
+pub mod crypto;
+pub mod db;
 pub mod error;
 pub mod gui;
 pub mod i18n;
 pub mod network;
 pub mod settings;
 pub mod update;
-pub mod db;
-pub mod crypto;

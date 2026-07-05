@@ -8,7 +8,7 @@
 
 use eframe::egui;
 
-use super::{ToolScreen, ToolEvent};
+use super::{ToolEvent, ToolScreen};
 use crate::i18n::{Language, Message, t};
 use crate::network::security::{self, Finding, FindingCode, Level};
 
@@ -52,8 +52,10 @@ impl Default for SecurityTool {
 }
 
 impl ToolScreen for SecurityTool {
-    fn icon(&self) -> &'static str { "🔒" }
-    
+    fn icon(&self) -> &'static str {
+        "🔒"
+    }
+
     fn name(&self, dil: Language) -> &'static str {
         t(dil, Message::SecName)
     }
@@ -85,9 +87,13 @@ impl ToolScreen for SecurityTool {
 
         if self.denetlendi {
             if self.bulgular.is_empty() {
-                ui.colored_label(egui::Color32::from_rgb(90, 190, 90), t(dil, Message::SecNoIssues));
+                ui.colored_label(
+                    egui::Color32::from_rgb(90, 190, 90),
+                    t(dil, Message::SecNoIssues),
+                );
             } else {
-                let ozet = t(dil, Message::SecFindings).replace("{0}", &self.bulgular.len().to_string());
+                let ozet =
+                    t(dil, Message::SecFindings).replace("{0}", &self.bulgular.len().to_string());
                 ui.label(egui::RichText::new(ozet).strong());
                 ui.add_space(6.0);
 
@@ -129,9 +135,18 @@ impl SecurityTool {
 /// Seviyenin ekran etiketi ve rengi.
 fn seviye_gorsel(dil: Language, s: Level) -> (&'static str, egui::Color32) {
     match s {
-        Level::Critical => (t(dil, Message::SecLevelCritical), egui::Color32::from_rgb(220, 80, 80)),
-        Level::Warning => (t(dil, Message::SecLevelWarning), egui::Color32::from_rgb(220, 150, 60)),
-        Level::Info => (t(dil, Message::SecLevelInfo), egui::Color32::from_rgb(150, 150, 150)),
+        Level::Critical => (
+            t(dil, Message::SecLevelCritical),
+            egui::Color32::from_rgb(220, 80, 80),
+        ),
+        Level::Warning => (
+            t(dil, Message::SecLevelWarning),
+            egui::Color32::from_rgb(220, 150, 60),
+        ),
+        Level::Info => (
+            t(dil, Message::SecLevelInfo),
+            egui::Color32::from_rgb(150, 150, 150),
+        ),
     }
 }
 

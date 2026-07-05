@@ -48,7 +48,7 @@ mod tests {
         let yeni = "hostname R1\n!\ninterface G0/0\n no shutdown\n";
 
         let fark = compare_configs(eski, yeni);
-        
+
         // 4 satır var. 1, 2, 3 değişmedi. 4 silindi, 4 eklendi. (toplam 5 eleman döner)
         assert_eq!(fark.len(), 5);
         assert_eq!(fark[0].tip, DiffType::Unchanged);

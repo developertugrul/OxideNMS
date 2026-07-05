@@ -9,7 +9,9 @@ pub fn tr(m: Message) -> &'static str {
         Message::PlaceholderTopology => "Topoloji (yakında)",
         Message::CheckingUpdates => "Güncellemeler denetleniyor...",
         Message::UpdateRequired => "Zorunlu Güncelleme",
-        Message::VersionUnsupported => "Bu sürüm artık desteklenmiyor. Lütfen devam etmek için en güncel sürümü kurun.",
+        Message::VersionUnsupported => {
+            "Bu sürüm artık desteklenmiyor. Lütfen devam etmek için en güncel sürümü kurun."
+        }
         Message::YourVersion => "Sizin sürümünüz",
         Message::RequiredVersion => "Gerekli sürüm",
         Message::DownloadUpdate => "Güncellemeyi İndir",
@@ -18,7 +20,9 @@ pub fn tr(m: Message) -> &'static str {
         Message::NewVersionAvailable => "Yeni sürüm mevcut: v{0} (sizdeki v{1}).",
         Message::Download => "İndir",
         Message::SubnetName => "Subnet Hesaplayıcı",
-        Message::SubnetDescription => "Bir CIDR girin (örn. 192.168.1.10/24). Sonuç anında hesaplanır.",
+        Message::SubnetDescription => {
+            "Bir CIDR girin (örn. 192.168.1.10/24). Sonuç anında hesaplanır."
+        }
         Message::CidrInput => "CIDR:",
         Message::Input => "Girdi",
         Message::SubnetMask => "Subnet maskesi",
@@ -29,25 +33,33 @@ pub fn tr(m: Message) -> &'static str {
         Message::UsableHosts => "Kullanılabilir host",
         Message::ErrorPrefix => "Hata: ",
         Message::SettingsName => "Ayarlar",
-        Message::SettingsDescription => "Değişiklikler 'Kaydet' ile diskteki settings.toml dosyasına yazılır.",
+        Message::SettingsDescription => {
+            "Değişiklikler 'Kaydet' ile diskteki settings.toml dosyasına yazılır."
+        }
         Message::ThemeLabel => "Tema",
         Message::ThemeDark => "Koyu",
         Message::ThemeLight => "Açık",
         Message::LanguageLabel => "Dil",
         Message::ManifestUrl => "Güncelleme manifest adresi",
-        Message::ManifestNote => "(Manifest değişimi uygulamayı yeniden başlatınca tam etkili olur.)",
+        Message::ManifestNote => {
+            "(Manifest değişimi uygulamayı yeniden başlatınca tam etkili olur.)"
+        }
         Message::Save => "Kaydet",
         Message::Saved => "Kaydedildi.",
         Message::SaveFailedPrefix => "Kaydedilemedi: ",
         Message::FilePrefix => "Dosya: ",
         Message::DiffName => "Config Karşılaştır (Diff)",
-        Message::DiffDescription => "İki cihaz konfigürasyonunu karşılaştırıp değişen satırları tespit edin.",
+        Message::DiffDescription => {
+            "İki cihaz konfigürasyonunu karşılaştırıp değişen satırları tespit edin."
+        }
         Message::DiffOldConfig => "Eski Config",
         Message::DiffNewConfig => "Yeni Config",
         Message::DiffCompare => "Karşılaştır",
         Message::DiffSaveToDb => "Yeni Config'i DB'ye Kaydet",
         Message::SecName => "Config Güvenlik Denetimi",
-        Message::SecDescription => "Cisco config'ini yapıştır ve 'Denetle'ye bas. Riskli ayarlar listelenir.",
+        Message::SecDescription => {
+            "Cisco config'ini yapıştır ve 'Denetle'ye bas. Riskli ayarlar listelenir."
+        }
         Message::SecAudit => "Denetle",
         Message::SecNoIssues => "Güvenlik sorunu bulunamadı.",
         Message::SecFindings => "{0} bulgu bulundu:",
@@ -68,20 +80,44 @@ pub fn tr(m: Message) -> &'static str {
         Message::SecTitleLinePasswordless => "Parolasız hat erişimi",
         Message::SecTitleNoLogging => "Loglama kapalı",
         Message::SecTitleNoNtpAuth => "NTP kimlik doğrulama yok",
-        Message::SecAdviceTelnetEnabled => "Telnet şifresizdir. Bunun yerine 'transport input ssh' kullanın.",
-        Message::SecAdviceNoEnableSecret => "'enable password' zayıftır. Güçlü hash için 'enable secret' kullanın.",
-        Message::SecAdviceSnmpPublic => "Varsayılan 'public' community tahmin edilebilir. Değiştirin veya SNMPv3 kullanın.",
+        Message::SecAdviceTelnetEnabled => {
+            "Telnet şifresizdir. Bunun yerine 'transport input ssh' kullanın."
+        }
+        Message::SecAdviceNoEnableSecret => {
+            "'enable password' zayıftır. Güçlü hash için 'enable secret' kullanın."
+        }
+        Message::SecAdviceSnmpPublic => {
+            "Varsayılan 'public' community tahmin edilebilir. Değiştirin veya SNMPv3 kullanın."
+        }
         Message::SecAdviceSnmpPrivate => "Varsayılan 'private' community'yi değiştirin.",
-        Message::SecAdviceNoPasswordEncryption => "'service password-encryption' ekleyin; düz metin parolaları gizler.",
-        Message::SecAdviceHttpServerEnabled => "'no ip http server' ile kapatın; gerekiyorsa HTTPS kullanın.",
-        Message::SecAdviceWeakPassword => "Tahmin edilebilir/varsayılan parolayı güçlü bir parolayla değiştirin.",
-        Message::SecAdviceSnmpRw => "SNMP yazma yetkisi (RW) güvenlik riskidir. Sadece RO (okuma) kullanın veya SNMPv3'e geçin.",
-        Message::SecAdviceSshV1 => "SSH sürüm 1 güvensizdir. 'ip ssh version 2' komutuyla güncelleyin.",
-        Message::SecAdviceType7Password => "Type-7 parolalar kolayca geri döndürülebilir. Güçlü 'secret' algoritmaları kullanın.",
-        Message::SecAdviceLinePasswordless => "Console, VTY veya AUX hatları parolasız bırakılamaz. Parola ayarlayın veya SSH key kullanın.",
-        Message::SecAdviceNoLogging => "Sistem olaylarını izlemek için 'logging host <IP>' veya 'logging buffered' etkinleştirilmeli.",
-        Message::SecAdviceNoNtpAuth => "NTP spoofing saldırılarını önlemek için NTP kimlik doğrulaması (NTP auth) yapılandırın.",
-    
+        Message::SecAdviceNoPasswordEncryption => {
+            "'service password-encryption' ekleyin; düz metin parolaları gizler."
+        }
+        Message::SecAdviceHttpServerEnabled => {
+            "'no ip http server' ile kapatın; gerekiyorsa HTTPS kullanın."
+        }
+        Message::SecAdviceWeakPassword => {
+            "Tahmin edilebilir/varsayılan parolayı güçlü bir parolayla değiştirin."
+        }
+        Message::SecAdviceSnmpRw => {
+            "SNMP yazma yetkisi (RW) güvenlik riskidir. Sadece RO (okuma) kullanın veya SNMPv3'e geçin."
+        }
+        Message::SecAdviceSshV1 => {
+            "SSH sürüm 1 güvensizdir. 'ip ssh version 2' komutuyla güncelleyin."
+        }
+        Message::SecAdviceType7Password => {
+            "Type-7 parolalar kolayca geri döndürülebilir. Güçlü 'secret' algoritmaları kullanın."
+        }
+        Message::SecAdviceLinePasswordless => {
+            "Console, VTY veya AUX hatları parolasız bırakılamaz. Parola ayarlayın veya SSH key kullanın."
+        }
+        Message::SecAdviceNoLogging => {
+            "Sistem olaylarını izlemek için 'logging host <IP>' veya 'logging buffered' etkinleştirilmeli."
+        }
+        Message::SecAdviceNoNtpAuth => {
+            "NTP spoofing saldırılarını önlemek için NTP kimlik doğrulaması (NTP auth) yapılandırın."
+        }
+
         Message::SshName => "SSH Cihaz Bağlantısı",
         Message::SshDescription => "Cihaza bağlanarak konfigürasyon çek",
         Message::SshIp => "IP Adresi:",
@@ -102,13 +138,16 @@ pub fn tr(m: Message) -> &'static str {
         Message::VlanGenerate => "Planla ve Config Üret",
         Message::VlanResult => "Üretilen Konfigürasyon",
         Message::TopologyName => "Config Ayrıştırıcı",
-        Message::TopologyDescription => "Running-config dosyasını analiz edip Interface durumlarını listeler",
+        Message::TopologyDescription => {
+            "Running-config dosyasını analiz edip Interface durumlarını listeler"
+        }
         Message::TopologyConfigInput => "Running-Config Metni:",
         Message::TopologyParse => "Ayrıştır",
         Message::TopologyInterface => "Arayüz (Interface)",
         Message::TopologyStatus => "Durum",
         Message::TopologyIp => "IP Adresi",
-        Message::TopologyVlan => "VLAN / Mod",        Message::DeviceManager => "Cihaz Yöneticisi",
+        Message::TopologyVlan => "VLAN / Mod",
+        Message::DeviceManager => "Cihaz Yöneticisi",
         Message::AddDevice => "Cihaz Ekle",
         Message::DeviceName => "Cihaz Adı",
         Message::IPAddress => "IP Adresi",
@@ -126,6 +165,5 @@ pub fn tr(m: Message) -> &'static str {
         Message::SelectDevices => "Cihazları Seç",
         Message::DeployCommands => "Komutları Gönder",
         Message::DeploySuccess => "Dağıtım tamamlandı",
-
-}
+    }
 }

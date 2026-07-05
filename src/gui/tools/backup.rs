@@ -1,12 +1,12 @@
-use eframe::egui;
-use crate::gui::tools::{ToolScreen, ToolEvent};
-use crate::i18n::{Language, Message, t};
-use crate::db;
 use crate::crypto;
+use crate::db;
+use crate::gui::tools::{ToolEvent, ToolScreen};
+use crate::i18n::{Language, Message, t};
+use eframe::egui;
+use ssh;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use ssh;
 
 #[derive(Clone)]
 struct BackupLog {
@@ -47,7 +47,9 @@ impl BackupTool {
         let interval = self.interval_hours as u64;
 
         if let Ok(mut lock) = is_running.lock() {
-            if *lock { return; }
+            if *lock {
+                return;
+            }
             *lock = true;
         }
 
@@ -55,15 +57,25 @@ impl BackupTool {
             loop {
                 // Check if should stop
                 if let Ok(lock) = is_running.lock() {
-                    if !*lock { break; }
+                    if !*lock {
+                        break;
+                    }
                 }
-                
+
                 // Fetch devices
                 let mut devices = Vec::new();
                 if let Ok(conn) = db::get_connection() {
-                    if let Ok(mut stmt) = conn.prepare("SELECT id, name, ip_address, username, encrypted_credentials FROM devices") {
+                    if let Ok(mut stmt) = conn.prepare(
+                        "SELECT id, name, ip_address, username, encrypted_credentials FROM devices",
+                    ) {
                         if let Ok(iter) = stmt.query_map([], |row| {
-                            Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, row.get::<_, Option<String>>(3)?.unwrap_or_default(), row.get::<_, Option<String>>(4)?.unwrap_or_default()))
+                            Ok((
+                                row.get::<_, i32>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, String>(2)?,
+                                row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                                row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                            ))
                         }) {
                             for dev in iter.flatten() {
                                 devices.push(dev);
@@ -76,19 +88,26 @@ impl BackupTool {
                     let mut status_msg = String::new();
                     if let Ok(plain_pass) = crypto::decrypt_credential(&enc_cred, &m_pass) {
                         let addr = format!("{}:22", ip);
-                        let session = ssh::create_session().username(&user).password(&plain_pass).connect(&addr);
-                        
+                        let session = ssh::create_session()
+                            .username(&user)
+                            .password(&plain_pass)
+                            .connect(&addr);
+
                         match session {
                             Ok(sess) => {
                                 let mut local_sess = sess.run_local();
                                 match local_sess.open_exec() {
                                     Ok(exec) => {
-                                        let res: Result<Vec<u8>, _> = exec.send_command("show running-config");
+                                        let res: Result<Vec<u8>, _> =
+                                            exec.send_command("show running-config");
                                         match res {
                                             Ok(vec) => {
-                                                let config = String::from_utf8_lossy(&vec).into_owned();
+                                                let config =
+                                                    String::from_utf8_lossy(&vec).into_owned();
                                                 if let Ok(conn) = db::get_connection() {
-                                                    let _ = db::devices::save_config(&conn, id as i64, &config);
+                                                    let _ = db::devices::save_config(
+                                                        &conn, id as i64, &config,
+                                                    );
                                                     status_msg = "Başarılı Yedek".to_string();
                                                 }
                                             }
@@ -106,7 +125,11 @@ impl BackupTool {
 
                     if let Ok(mut l) = logs.lock() {
                         let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-                        l.push(BackupLog { time: now, device: name.clone(), status: status_msg });
+                        l.push(BackupLog {
+                            time: now,
+                            device: name.clone(),
+                            status: status_msg,
+                        });
                     }
                     ctx.request_repaint();
                 }
@@ -154,19 +177,29 @@ impl ToolScreen for BackupTool {
             return None;
         }
 
-        ui.label(egui::RichText::new("Vault Açık. Yedekleme Görevleri Başlatılabilir.").color(egui::Color32::GREEN));
+        ui.label(
+            egui::RichText::new("Vault Açık. Yedekleme Görevleri Başlatılabilir.")
+                .color(egui::Color32::GREEN),
+        );
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
             ui.label("Periyot (Saat):");
-            ui.add(egui::DragValue::new(&mut self.interval_hours).speed(1).range(1..=24));
+            ui.add(
+                egui::DragValue::new(&mut self.interval_hours)
+                    .speed(1)
+                    .range(1..=24),
+            );
         });
 
         ui.add_space(10.0);
 
         let running = *self.is_running.lock().unwrap();
         if running {
-            ui.label(egui::RichText::new("Yedekleme servisi arka planda çalışıyor...").color(egui::Color32::YELLOW));
+            ui.label(
+                egui::RichText::new("Yedekleme servisi arka planda çalışıyor...")
+                    .color(egui::Color32::YELLOW),
+            );
             if ui.button("Durdur").clicked() {
                 self.stop_backup_loop();
             }

@@ -24,7 +24,10 @@ pub fn get_connection() -> Result<Connection> {
 
     // Geçmiş veritabanı sürümleri için basit migrasyon
     let _ = conn.execute("ALTER TABLE devices ADD COLUMN username TEXT", []);
-    let _ = conn.execute("ALTER TABLE devices ADD COLUMN encrypted_credentials TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE devices ADD COLUMN encrypted_credentials TEXT",
+        [],
+    );
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS config_gecmisi (

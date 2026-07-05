@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection, Result};
+use rusqlite::{Connection, Result, params};
 
 #[derive(Debug, Clone)]
 pub struct Device {
@@ -70,9 +70,9 @@ pub fn get_config_history(conn: &Connection, device_id: i64) -> Result<Vec<Confi
         "SELECT id, device_id, config_text, recorded_at 
          FROM config_gecmisi 
          WHERE device_id = ?1 
-         ORDER BY id DESC"
+         ORDER BY id DESC",
     )?;
-    
+
     let config_iter = stmt.query_map(params![device_id], |row| {
         Ok(ConfigHistory {
             id: row.get(0)?,

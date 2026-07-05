@@ -1,10 +1,10 @@
-use eframe::egui;
-use crate::gui::tools::{ToolScreen, ToolEvent};
-use crate::i18n::{Language, Message, t};
-use crate::db;
 use crate::crypto;
-use std::sync::{Arc, Mutex};
+use crate::db;
+use crate::gui::tools::{ToolEvent, ToolScreen};
+use crate::i18n::{Language, Message, t};
+use eframe::egui;
 use ssh;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 #[derive(Clone)]
@@ -74,9 +74,9 @@ impl BulkDeployTool {
         self.is_deploying = true;
         let cmds = self.commands.clone();
         let m_pass = self.master_pass.clone();
-        
+
         let devices_arc = self.devices.clone();
-        
+
         let devices_len = {
             let lock = devices_arc.lock().unwrap();
             lock.len()
@@ -86,23 +86,28 @@ impl BulkDeployTool {
             let (ip, user, enc_cred, selected) = {
                 let lock = devices_arc.lock().unwrap();
                 let dev = &lock[i];
-                (dev.ip.clone(), dev.user.clone(), dev.enc_cred.clone(), dev.selected)
+                (
+                    dev.ip.clone(),
+                    dev.user.clone(),
+                    dev.enc_cred.clone(),
+                    dev.selected,
+                )
             };
 
             if !selected {
                 continue;
             }
-            
+
             {
                 let mut lock = devices_arc.lock().unwrap();
                 lock[i].status = Some("Gönderiliyor...".to_string());
             }
-            
+
             let cmds_thread = cmds.clone();
             let pass = m_pass.clone();
             let devs_clone = devices_arc.clone();
             let bg_ctx = ctx.clone();
-            
+
             thread::spawn(move || {
                 let result = match crypto::decrypt_credential(&enc_cred, &pass) {
                     Ok(plain_pass) => {
@@ -111,17 +116,15 @@ impl BulkDeployTool {
                             .username(&user)
                             .password(&plain_pass)
                             .connect(&addr);
-                            
+
                         match session {
                             Ok(sess) => {
                                 let mut local_sess = sess.run_local();
                                 match local_sess.open_exec() {
-                                    Ok(exec) => {
-                                        match exec.send_command(&cmds_thread) {
-                                            Ok(_) => "BAŞARILI".to_string(),
-                                            Err(e) => format!("Cmd Err: {:?}", e),
-                                        }
-                                    }
+                                    Ok(exec) => match exec.send_command(&cmds_thread) {
+                                        Ok(_) => "BAŞARILI".to_string(),
+                                        Err(e) => format!("Cmd Err: {:?}", e),
+                                    },
                                     Err(e) => format!("Exec Err: {:?}", e),
                                 }
                             }
@@ -130,7 +133,7 @@ impl BulkDeployTool {
                     }
                     Err(_) => "Şifre Çözme Hatası".to_string(),
                 };
-                
+
                 if let Ok(mut lock) = devs_clone.lock() {
                     if let Some(d) = lock.get_mut(i) {
                         d.status = Some(result);
@@ -176,31 +179,34 @@ impl ToolScreen for BulkDeployTool {
         ui.label(t(dil, Message::DeployCommands));
         ui.add(egui::TextEdit::multiline(&mut self.commands).desired_rows(5));
         ui.add_space(10.0);
-        
+
         if ui.button(t(dil, Message::DeployCommands)).clicked() {
             self.deploy_commands(ui.ctx().clone());
         }
 
         ui.add_space(10.0);
         ui.label(egui::RichText::new(t(dil, Message::SelectDevices)).strong());
-        
+
         if let Ok(mut devs) = self.devices.lock() {
             egui::ScrollArea::vertical().show(ui, |ui| {
-                egui::Grid::new("bulk_grid").striped(true).spacing([20.0, 8.0]).show(ui, |ui| {
-                    ui.label("Seç");
-                    ui.label(t(dil, Message::DeviceName));
-                    ui.label(t(dil, Message::IPAddress));
-                    ui.label("Durum");
-                    ui.end_row();
-
-                    for dev in devs.iter_mut() {
-                        ui.checkbox(&mut dev.selected, "");
-                        ui.label(&dev.name);
-                        ui.label(&dev.ip);
-                        ui.label(dev.status.as_deref().unwrap_or("-"));
+                egui::Grid::new("bulk_grid")
+                    .striped(true)
+                    .spacing([20.0, 8.0])
+                    .show(ui, |ui| {
+                        ui.label("Seç");
+                        ui.label(t(dil, Message::DeviceName));
+                        ui.label(t(dil, Message::IPAddress));
+                        ui.label("Durum");
                         ui.end_row();
-                    }
-                });
+
+                        for dev in devs.iter_mut() {
+                            ui.checkbox(&mut dev.selected, "");
+                            ui.label(&dev.name);
+                            ui.label(&dev.ip);
+                            ui.label(dev.status.as_deref().unwrap_or("-"));
+                            ui.end_row();
+                        }
+                    });
             });
         }
 

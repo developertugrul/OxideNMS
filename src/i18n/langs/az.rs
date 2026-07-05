@@ -9,7 +9,9 @@ pub fn az(m: Message) -> &'static str {
         Message::PlaceholderTopology => "Topology (soon)",
         Message::CheckingUpdates => "Checking for updates...",
         Message::UpdateRequired => "Update Required",
-        Message::VersionUnsupported => "This version is no longer supported. Please install the latest version to continue.",
+        Message::VersionUnsupported => {
+            "This version is no longer supported. Please install the latest version to continue."
+        }
         Message::YourVersion => "Your version",
         Message::RequiredVersion => "Required version",
         Message::DownloadUpdate => "Download Update",
@@ -18,7 +20,9 @@ pub fn az(m: Message) -> &'static str {
         Message::NewVersionAvailable => "New version available: v{0} (you have v{1}).",
         Message::Download => "Download",
         Message::SubnetName => "Subnet Calculator",
-        Message::SubnetDescription => "Enter a CIDR (e.g. 192.168.1.10/24). The result is computed instantly.",
+        Message::SubnetDescription => {
+            "Enter a CIDR (e.g. 192.168.1.10/24). The result is computed instantly."
+        }
         Message::CidrInput => "CIDR:",
         Message::Input => "Input",
         Message::SubnetMask => "Subnet mask",
@@ -47,7 +51,9 @@ pub fn az(m: Message) -> &'static str {
         Message::DiffCompare => "Compare",
         Message::DiffSaveToDb => "Save New Config to DB",
         Message::SecName => "Config Security Audit",
-        Message::SecDescription => "Paste your Cisco config and click 'Audit'. Risky settings are listed.",
+        Message::SecDescription => {
+            "Paste your Cisco config and click 'Audit'. Risky settings are listed."
+        }
         Message::SecAudit => "Audit",
         Message::SecNoIssues => "No security issues found.",
         Message::SecFindings => "{0} findings:",
@@ -68,20 +74,42 @@ pub fn az(m: Message) -> &'static str {
         Message::SecTitleLinePasswordless => "Passwordless line access",
         Message::SecTitleNoLogging => "Logging disabled",
         Message::SecTitleNoNtpAuth => "No NTP authentication",
-        Message::SecAdviceTelnetEnabled => "Telnet is unencrypted. Use 'transport input ssh' instead.",
-        Message::SecAdviceNoEnableSecret => "'enable password' is weak. Use 'enable secret' for a strong hash.",
-        Message::SecAdviceSnmpPublic => "The default 'public' community is guessable. Change it or use SNMPv3.",
+        Message::SecAdviceTelnetEnabled => {
+            "Telnet is unencrypted. Use 'transport input ssh' instead."
+        }
+        Message::SecAdviceNoEnableSecret => {
+            "'enable password' is weak. Use 'enable secret' for a strong hash."
+        }
+        Message::SecAdviceSnmpPublic => {
+            "The default 'public' community is guessable. Change it or use SNMPv3."
+        }
         Message::SecAdviceSnmpPrivate => "Change the default 'private' community.",
-        Message::SecAdviceNoPasswordEncryption => "Add 'service password-encryption' to hide plaintext passwords.",
-        Message::SecAdviceHttpServerEnabled => "Disable with 'no ip http server'; use HTTPS if needed.",
-        Message::SecAdviceWeakPassword => "Replace the guessable/default password with a strong one.",
-        Message::SecAdviceSnmpRw => "SNMP write access (RW) is a security risk. Use RO (read-only) or upgrade to SNMPv3.",
+        Message::SecAdviceNoPasswordEncryption => {
+            "Add 'service password-encryption' to hide plaintext passwords."
+        }
+        Message::SecAdviceHttpServerEnabled => {
+            "Disable with 'no ip http server'; use HTTPS if needed."
+        }
+        Message::SecAdviceWeakPassword => {
+            "Replace the guessable/default password with a strong one."
+        }
+        Message::SecAdviceSnmpRw => {
+            "SNMP write access (RW) is a security risk. Use RO (read-only) or upgrade to SNMPv3."
+        }
         Message::SecAdviceSshV1 => "SSH version 1 is insecure. Update it using 'ip ssh version 2'.",
-        Message::SecAdviceType7Password => "Type-7 passwords are easily reversible. Use strong 'secret' algorithms.",
-        Message::SecAdviceLinePasswordless => "Console, VTY or AUX lines cannot be left passwordless. Set a password or use SSH keys.",
-        Message::SecAdviceNoLogging => "Enable 'logging host <IP>' or 'logging buffered' to monitor system events.",
-        Message::SecAdviceNoNtpAuth => "Configure NTP authentication to prevent NTP spoofing attacks.",
-    
+        Message::SecAdviceType7Password => {
+            "Type-7 passwords are easily reversible. Use strong 'secret' algorithms."
+        }
+        Message::SecAdviceLinePasswordless => {
+            "Console, VTY or AUX lines cannot be left passwordless. Set a password or use SSH keys."
+        }
+        Message::SecAdviceNoLogging => {
+            "Enable 'logging host <IP>' or 'logging buffered' to monitor system events."
+        }
+        Message::SecAdviceNoNtpAuth => {
+            "Configure NTP authentication to prevent NTP spoofing attacks."
+        }
+
         Message::SshName => "SSH Device Connection",
         Message::SshDescription => "Connect to device and pull configuration",
         Message::SshIp => "IP Address:",
@@ -108,7 +136,8 @@ pub fn az(m: Message) -> &'static str {
         Message::TopologyInterface => "Interface",
         Message::TopologyStatus => "Status",
         Message::TopologyIp => "IP Address",
-        Message::TopologyVlan => "VLAN / Mode",        Message::DeviceManager => "Device Manager",
+        Message::TopologyVlan => "VLAN / Mode",
+        Message::DeviceManager => "Device Manager",
         Message::AddDevice => "Add Device",
         Message::DeviceName => "Device Name",
         Message::IPAddress => "IP Address",
@@ -126,6 +155,5 @@ pub fn az(m: Message) -> &'static str {
         Message::SelectDevices => "Select Devices",
         Message::DeployCommands => "Deploy Commands",
         Message::DeploySuccess => "Deployment finished",
-
-}
+    }
 }

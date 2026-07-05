@@ -154,7 +154,7 @@ pub enum Message {
     Saved,
     SaveFailedPrefix,
     FilePrefix,
-    
+
     // Diff aracı
     DiffName,
     DiffDescription,
@@ -162,7 +162,7 @@ pub enum Message {
     DiffNewConfig,
     DiffCompare,
     DiffSaveToDb,
-    
+
     // Security aracı
     SecName,
     SecDescription,
@@ -173,7 +173,7 @@ pub enum Message {
     SecLevelCritical,
     SecLevelWarning,
     SecLevelInfo,
-    
+
     // Security Findings (Titles)
     SecTitleTelnetEnabled,
     SecTitleNoEnableSecret,
@@ -188,7 +188,7 @@ pub enum Message {
     SecTitleLinePasswordless,
     SecTitleNoLogging,
     SecTitleNoNtpAuth,
-    
+
     // Security Findings (Advice)
     SecAdviceTelnetEnabled,
     SecAdviceNoEnableSecret,
@@ -203,7 +203,7 @@ pub enum Message {
     SecAdviceLinePasswordless,
     SecAdviceNoLogging,
     SecAdviceNoNtpAuth,
-    
+
     // SSH Tool
     SshName,
     SshDescription,
@@ -214,7 +214,7 @@ pub enum Message {
     SshConnect,
     SshConnectingLabel,
     SshSuccess,
-    
+
     // Vlan Tool
     VlanName,
     VlanDescription,
@@ -225,7 +225,7 @@ pub enum Message {
     VlanHosts,
     VlanGenerate,
     VlanResult,
-    
+
     // Topology Tool
     TopologyName,
     TopologyDescription,

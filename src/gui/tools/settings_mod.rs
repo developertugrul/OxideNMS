@@ -6,7 +6,7 @@
 
 use eframe::egui;
 
-use super::{ToolScreen, ToolEvent};
+use super::{ToolEvent, ToolScreen};
 use crate::i18n::{Language, Message, t};
 use crate::settings::{AppSettings, Theme};
 
@@ -32,8 +32,10 @@ impl SettingsTool {
 }
 
 impl ToolScreen for SettingsTool {
-    fn icon(&self) -> &'static str { "⚙" }
-    
+    fn icon(&self) -> &'static str {
+        "⚙"
+    }
+
     fn name(&self, dil: Language) -> &'static str {
         t(dil, Message::SettingsName)
     }
@@ -68,7 +70,11 @@ impl ToolScreen for SettingsTool {
         ui.label(egui::RichText::new(t(dil, Message::ThemeLabel)).strong());
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.ayar.tema, Theme::Koyu, t(dil, Message::ThemeDark));
-            ui.selectable_value(&mut self.ayar.tema, Theme::Acik, t(dil, Message::ThemeLight));
+            ui.selectable_value(
+                &mut self.ayar.tema,
+                Theme::Acik,
+                t(dil, Message::ThemeLight),
+            );
         });
 
         ui.add_space(12.0);
@@ -80,7 +86,11 @@ impl ToolScreen for SettingsTool {
                 .desired_width(420.0)
                 .hint_text("https://.../latest.json"),
         );
-        ui.label(egui::RichText::new(t(dil, Message::ManifestNote)).small().weak());
+        ui.label(
+            egui::RichText::new(t(dil, Message::ManifestNote))
+                .small()
+                .weak(),
+        );
 
         ui.add_space(16.0);
         ui.separator();

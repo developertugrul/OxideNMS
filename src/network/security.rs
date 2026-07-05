@@ -74,7 +74,11 @@ fn hat_bitir(aktif: &mut Option<HatDurumu>, bulgular: &mut Vec<Finding>) {
     let aux = hl.contains("aux");
     if (vty || con || aux) && !h.parola && !h.login_guvenli {
         // vty/aux uzaktan erişimdir -> kritik; console fiziksel -> uyarı.
-        let level = if vty || aux { Level::Critical } else { Level::Warning };
+        let level = if vty || aux {
+            Level::Critical
+        } else {
+            Level::Warning
+        };
         bulgular.push(Finding {
             level,
             code: FindingCode::LinePasswordless,
@@ -154,39 +158,87 @@ pub fn audit(config: &str) -> Vec<Finding> {
 
         // Telnet etkin mi?
         if lc.contains("transport input telnet") || lc.contains("transport input all") {
-            ekle(&mut bulgular, Level::Critical, FindingCode::TelnetEnabled, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Critical,
+                FindingCode::TelnetEnabled,
+                satir_no,
+                l,
+            );
         }
 
         // SSH sürüm 1.
         if lc.contains("ip ssh version 1") {
-            ekle(&mut bulgular, Level::Critical, FindingCode::SshV1, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Critical,
+                FindingCode::SshV1,
+                satir_no,
+                l,
+            );
         }
 
         // SNMP varsayılan community'ler ve yazma erişimi.
         if lc.contains("snmp-server community public") {
-            ekle(&mut bulgular, Level::Critical, FindingCode::SnmpPublic, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Critical,
+                FindingCode::SnmpPublic,
+                satir_no,
+                l,
+            );
         } else if lc.contains("snmp-server community private") {
-            ekle(&mut bulgular, Level::Warning, FindingCode::SnmpPrivate, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Warning,
+                FindingCode::SnmpPrivate,
+                satir_no,
+                l,
+            );
         }
         if lc.starts_with("snmp-server community") && lc.contains(" rw") {
-            ekle(&mut bulgular, Level::Warning, FindingCode::SnmpRw, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Warning,
+                FindingCode::SnmpRw,
+                satir_no,
+                l,
+            );
         }
 
         // Şifresiz HTTP sunucusu (HTTPS 'secure-server' hariç).
         if lc == "ip http server" {
-            ekle(&mut bulgular, Level::Warning, FindingCode::HttpServerEnabled, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Warning,
+                FindingCode::HttpServerEnabled,
+                satir_no,
+                l,
+            );
         }
 
         // Type-7 (geri döndürülebilir) parola.
         if (lc.contains("password") || lc.contains("secret")) && lc.contains(" 7 ") {
-            ekle(&mut bulgular, Level::Warning, FindingCode::Type7Password, satir_no, l);
+            ekle(
+                &mut bulgular,
+                Level::Warning,
+                FindingCode::Type7Password,
+                satir_no,
+                l,
+            );
         }
 
         // Zayıf/varsayılan parola: parola satırındaki son değeri kontrol et.
         if lc.contains("password") || lc.contains("secret") {
             if let Some(son) = l.split_whitespace().next_back() {
                 if ZAYIF_PAROLALAR.contains(&son.to_lowercase().as_str()) {
-                    ekle(&mut bulgular, Level::Critical, FindingCode::WeakPassword, satir_no, l);
+                    ekle(
+                        &mut bulgular,
+                        Level::Critical,
+                        FindingCode::WeakPassword,
+                        satir_no,
+                        l,
+                    );
                 }
             }
         }
@@ -209,7 +261,10 @@ pub fn audit(config: &str) -> Vec<Finding> {
     }
 
     if !parola_sifreleme {
-        bulgular.push(bulgu_satirsiz(Level::Warning, FindingCode::NoPasswordEncryption));
+        bulgular.push(bulgu_satirsiz(
+            Level::Warning,
+            FindingCode::NoPasswordEncryption,
+        ));
     }
 
     if !logging_var {
@@ -265,17 +320,26 @@ mod tests {
 
     #[test]
     fn snmp_public_kritik() {
-        assert!(kod_var(&audit("snmp-server community public RO\n"), FindingCode::SnmpPublic));
+        assert!(kod_var(
+            &audit("snmp-server community public RO\n"),
+            FindingCode::SnmpPublic
+        ));
     }
 
     #[test]
     fn snmp_rw_uyari() {
-        assert!(kod_var(&audit("snmp-server community gizli123 RW\n"), FindingCode::SnmpRw));
+        assert!(kod_var(
+            &audit("snmp-server community gizli123 RW\n"),
+            FindingCode::SnmpRw
+        ));
     }
 
     #[test]
     fn zayif_parola_yakalanir() {
-        assert!(kod_var(&audit("username admin password cisco\n"), FindingCode::WeakPassword));
+        assert!(kod_var(
+            &audit("username admin password cisco\n"),
+            FindingCode::WeakPassword
+        ));
     }
 
     #[test]
@@ -285,7 +349,10 @@ mod tests {
 
     #[test]
     fn tip7_parola_uyari() {
-        assert!(kod_var(&audit("enable password 7 08701E1D0A18\n"), FindingCode::Type7Password));
+        assert!(kod_var(
+            &audit("enable password 7 08701E1D0A18\n"),
+            FindingCode::Type7Password
+        ));
     }
 
     #[test]
@@ -303,7 +370,10 @@ mod tests {
 
     #[test]
     fn ntp_auth_yoksa_uyari() {
-        assert!(kod_var(&audit("ntp server 192.0.2.1\n"), FindingCode::NoNtpAuth));
+        assert!(kod_var(
+            &audit("ntp server 192.0.2.1\n"),
+            FindingCode::NoNtpAuth
+        ));
     }
 
     #[test]
@@ -325,7 +395,10 @@ line vty 0 4
  login local
 ";
         let b = audit(cfg);
-        assert!(!b.iter().any(|x| x.level == Level::Critical), "kritik olmamalı: {b:?}");
+        assert!(
+            !b.iter().any(|x| x.level == Level::Critical),
+            "kritik olmamalı: {b:?}"
+        );
         assert!(!kod_var(&b, FindingCode::NoEnableSecret));
         assert!(!kod_var(&b, FindingCode::NoPasswordEncryption));
         assert!(!kod_var(&b, FindingCode::LinePasswordless));
