@@ -1,6 +1,6 @@
 [package]
 name = "oxidenms"
-version = "1.0.7"
+version = "1.0.8"
 edition = "2024"
 authors = ["Cisco App Developer"]
 description = "Professional Cisco-focused NMS/NCCCM and cybersecurity operations desktop tool"

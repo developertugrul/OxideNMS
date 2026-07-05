@@ -5,6 +5,14 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.8] - 2026-07-06
+
+### Fixed
+
+- Default language is now English for new settings.
+- Tool screens now respect the selected UI language instead of showing Turkish
+  labels while English is selected.
+
 ## [1.0.7] - 2026-07-05
 
 ### Added

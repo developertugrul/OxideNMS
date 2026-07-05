@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.7",
-  "minimum_version": "1.0.7",
+  "latest_version": "1.0.8",
+  "minimum_version": "1.0.8",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.7 release manifest example. Any build older than latest_version is locked until updated."
+  "notes": "OxideNMS 1.0.8 release manifest example. Any build older than latest_version is locked until updated."
 }

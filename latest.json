@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.7",
-  "minimum_version": "1.0.7",
+  "latest_version": "1.0.8",
+  "minimum_version": "1.0.8",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.7 adds Configuration Lifecycle history with latest-two config comparison."
+  "notes": "OxideNMS 1.0.8 fixes language consistency across tool screens when English is selected."
 }
