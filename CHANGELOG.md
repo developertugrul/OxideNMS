@@ -5,6 +5,13 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.5] - 2026-07-05
+
+### Fixed
+
+- Moved release verification to the Windows runner to avoid Linux-only clippy
+  variance blocking cross-platform artifact builds.
+
 ## [1.0.4] - 2026-07-05
 
 ### Added
