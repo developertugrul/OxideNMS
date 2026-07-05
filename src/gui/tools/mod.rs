@@ -9,6 +9,7 @@ use eframe::egui;
 
 use crate::i18n::Language;
 
+pub mod audit_log;
 pub mod backup;
 pub mod bulk_deploy;
 pub mod dashboard;
@@ -26,6 +27,7 @@ pub mod template;
 pub mod topology;
 pub mod vlan;
 
+pub use audit_log::AuditLogTool;
 pub use backup::BackupTool;
 pub use bulk_deploy::BulkDeployTool;
 pub use dashboard::DashboardTool;
