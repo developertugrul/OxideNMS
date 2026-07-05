@@ -5,7 +5,7 @@ use eframe::egui;
 
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use crate::network::discovery::{self, DiscoveryProbe};
 
 enum DiscoveryState {
@@ -77,12 +77,12 @@ impl DiscoveryTool {
                 match result {
                     Ok(_) => {
                         db::record_audit("discovery.add_device", &ip, "success", &details);
-                        self.status_msg = format!("{ip} envantere eklendi.");
+                        self.status_msg = format!("{ip} added to inventory.");
                     }
-                    Err(e) => self.status_msg = format!("Kayit hatasi: {e}"),
+                    Err(e) => self.status_msg = format!("Save failed: {e}"),
                 }
             }
-            Err(e) => self.status_msg = format!("DB hatasi: {e}"),
+            Err(e) => self.status_msg = format!("Database failed: {e}"),
         }
     }
 }
@@ -93,18 +93,22 @@ impl ToolScreen for DiscoveryTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🔎"
+        "DISC"
     }
 
     fn name(&self, _dil: Language) -> &'static str {
         "Discovery"
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
         self.poll_result();
 
         ui.heading("Device Discovery");
-        ui.label("CIDR aralığında TCP/22 ve TCP/161 reachability kontrolü yapar.");
+        ui.label(text(
+            dil,
+            "Checks TCP/22 and TCP/161 reachability across a CIDR range.",
+            "CIDR araliginda TCP/22 ve TCP/161 erisilebilirligini kontrol eder.",
+        ));
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
@@ -114,7 +118,7 @@ impl ToolScreen for DiscoveryTool {
             ui.add(egui::DragValue::new(&mut self.timeout_ms).range(50..=3000));
             let scanning = matches!(self.state, DiscoveryState::Scanning);
             if ui
-                .add_enabled(!scanning, egui::Button::new("Tara"))
+                .add_enabled(!scanning, egui::Button::new(text(dil, "Scan", "Tara")))
                 .clicked()
             {
                 self.start_scan(ui.ctx().clone());
@@ -132,16 +136,24 @@ impl ToolScreen for DiscoveryTool {
 
         match &self.state {
             DiscoveryState::Idle => {
-                ui.label("Tarama başlatılmadı.");
+                ui.label(text(dil, "Scan has not started.", "Tarama baslatilmadi."));
             }
             DiscoveryState::Scanning => {
-                ui.label("Tarama çalışıyor. Büyük subnetler ilk 1024 host ile sınırlıdır.");
+                ui.label(text(
+                    dil,
+                    "Scan is running. Large subnets are limited to the first 1024 hosts.",
+                    "Tarama calisiyor. Buyuk subnetler ilk 1024 host ile sinirlidir.",
+                ));
             }
             DiscoveryState::Error(e) => {
                 ui.colored_label(egui::Color32::RED, e);
             }
             DiscoveryState::Done(probes) => {
-                ui.label(format!("{} aday bulundu.", probes.len()));
+                ui.label(format!(
+                    "{} {}",
+                    probes.len(),
+                    text(dil, "candidates found.", "aday bulundu.")
+                ));
                 let mut add_idx = None;
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     egui::Grid::new("discovery_results")
@@ -160,7 +172,10 @@ impl ToolScreen for DiscoveryTool {
                                 ui.label(if probe.ssh_open { "open" } else { "-" });
                                 ui.label(if probe.snmp_open { "open" } else { "-" });
                                 ui.label(probe.service_summary());
-                                if ui.button("Envantere ekle").clicked() {
+                                if ui
+                                    .button(text(dil, "Add to inventory", "Envantere ekle"))
+                                    .clicked()
+                                {
                                     add_idx = Some(idx);
                                 }
                                 ui.end_row();

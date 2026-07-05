@@ -1,6 +1,6 @@
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use eframe::egui;
 use snmp::{SyncSession, Value};
 use std::sync::{Arc, Mutex};
@@ -47,7 +47,7 @@ impl SnmpMapTool {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     ip: row.get(2)?,
-                    pos: egui::pos2(100.0, 100.0), // Will spread them out later
+                    pos: egui::pos2(100.0, 100.0),
                     is_up: false,
                     sys_descr: String::new(),
                 })
@@ -143,32 +143,47 @@ impl ToolScreen for SnmpMapTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🗺️"
+        "MAP"
     }
 
     fn name(&self, _dil: Language) -> &'static str {
         "SNMP Map"
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
-        ui.heading("Topoloji Haritası (SNMP)");
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
+        ui.heading(text(dil, "Topology Map (SNMP)", "Topoloji Haritasi (SNMP)"));
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            if ui.button("Cihazları Yükle").clicked() {
+            if ui
+                .button(text(dil, "Load devices", "Cihazlari yukle"))
+                .clicked()
+            {
                 self.load_devices();
             }
 
             let running = *self.is_polling.lock().unwrap();
             if running {
-                ui.label(egui::RichText::new("SNMP Polling Aktif...").color(egui::Color32::GREEN));
-                if ui.button("Durdur").clicked() {
+                ui.label(
+                    egui::RichText::new(text(
+                        dil,
+                        "SNMP polling active...",
+                        "SNMP polling aktif...",
+                    ))
+                    .color(egui::Color32::GREEN),
+                );
+                if ui.button(text(dil, "Stop", "Durdur")).clicked() {
                     self.stop_polling();
                 }
-            } else {
-                if ui.button("İzlemeyi Başlat (SNMP)").clicked() {
-                    self.start_polling(ui.ctx().clone());
-                }
+            } else if ui
+                .button(text(
+                    dil,
+                    "Start monitoring (SNMP)",
+                    "Izlemeyi baslat (SNMP)",
+                ))
+                .clicked()
+            {
+                self.start_polling(ui.ctx().clone());
             }
         });
 
@@ -178,13 +193,10 @@ impl ToolScreen for SnmpMapTool {
             ui.allocate_painter(ui.available_size(), egui::Sense::click_and_drag());
 
         let rect = response.rect;
-
-        // Draw background
         painter.rect_filled(rect, 4.0, egui::Color32::from_rgb(30, 30, 30));
 
         let mut nodes = self.nodes.lock().unwrap();
 
-        // Handle dragging
         if let Some(id) = self.dragging_node {
             if response.dragged()
                 && let Some(node) = nodes.iter_mut().find(|n| n.id == id)
@@ -209,7 +221,6 @@ impl ToolScreen for SnmpMapTool {
             }
         }
 
-        // Draw nodes
         for node in nodes.iter() {
             let center = rect.min + node.pos.to_vec2();
             let node_rect = egui::Rect::from_center_size(center, egui::vec2(120.0, 70.0));

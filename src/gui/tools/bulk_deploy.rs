@@ -1,7 +1,7 @@
 use crate::crypto;
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use eframe::egui;
 use ssh;
 use std::sync::{Arc, Mutex};
@@ -87,16 +87,20 @@ impl BulkDeployTool {
         }
     }
 
-    fn deploy_commands(&mut self, ctx: egui::Context) {
+    fn deploy_commands(&mut self, ctx: egui::Context, dil: Language) {
         if self.commands.trim().is_empty() {
-            self.status_msg = "Komut bos olamaz.".to_string();
+            self.status_msg =
+                text(dil, "Commands cannot be empty.", "Komut bos olamaz.").to_string();
             return;
         }
 
         if Self::command_requires_confirmation(&self.commands) && !self.confirm_persistent {
-            self.status_msg =
-                "Kalici/riskli komut algilandi. Devam etmek icin onay kutusunu isaretleyin."
-                    .to_string();
+            self.status_msg = text(
+                dil,
+                "Persistent/risky command detected. Check the confirmation box to continue.",
+                "Kalici/riskli komut algilandi. Devam etmek icin onay kutusunu isaretleyin.",
+            )
+            .to_string();
             db::record_audit(
                 "bulk_deploy.blocked",
                 "selected-devices",
@@ -110,7 +114,6 @@ impl BulkDeployTool {
         let cmds = self.commands.clone();
         let m_pass = self.master_pass.clone();
         let dry_run = self.dry_run;
-
         let devices_arc = self.devices.clone();
 
         let devices_len = {
@@ -140,7 +143,7 @@ impl BulkDeployTool {
                 lock[i].status = Some(if dry_run {
                     "DRY-RUN".to_string()
                 } else {
-                    "Gonderiliyor...".to_string()
+                    "Sending...".to_string()
                 });
             }
 
@@ -168,16 +171,16 @@ impl BulkDeployTool {
                                 let mut local_sess = sess.run_local();
                                 match local_sess.open_exec() {
                                     Ok(exec) => match exec.send_command(&cmds_thread) {
-                                        Ok(_) => "BASARILI".to_string(),
-                                        Err(e) => format!("Cmd Err: {:?}", e),
+                                        Ok(_) => "SUCCESS".to_string(),
+                                        Err(e) => format!("Command failed: {:?}", e),
                                     },
-                                    Err(e) => format!("Exec Err: {:?}", e),
+                                    Err(e) => format!("Exec failed: {:?}", e),
                                 }
                             }
-                            Err(_e) => "SSH Bağlantı Hatası".to_string(),
+                            Err(_e) => "SSH connection failed".to_string(),
                         }
                     }
-                    Err(_) => "Şifre Çözme Hatası".to_string(),
+                    Err(_) => "Password decrypt failed".to_string(),
                 };
 
                 if let Ok(mut lock) = devs_clone.lock()
@@ -198,7 +201,7 @@ impl ToolScreen for BulkDeployTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🚀"
+        "DEP"
     }
 
     fn name(&self, dil: Language) -> &'static str {
@@ -218,7 +221,8 @@ impl ToolScreen for BulkDeployTool {
                         Ok(()) => {
                             self.unlocked = true;
                             self.fetch_devices();
-                            self.status_msg = "Vault dogrulandi.".to_string();
+                            self.status_msg =
+                                text(dil, "Vault verified.", "Vault dogrulandi.").to_string();
                         }
                         Err(e) => self.status_msg = e,
                     }
@@ -234,14 +238,24 @@ impl ToolScreen for BulkDeployTool {
         ui.add(egui::TextEdit::multiline(&mut self.commands).desired_rows(5));
         ui.add_space(10.0);
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.dry_run, "Dry-run / on izleme");
+            ui.checkbox(
+                &mut self.dry_run,
+                text(dil, "Dry-run / preview", "Dry-run / on izleme"),
+            );
             if Self::command_requires_confirmation(&self.commands) {
-                ui.checkbox(&mut self.confirm_persistent, "Kalici komutlari onayliyorum");
+                ui.checkbox(
+                    &mut self.confirm_persistent,
+                    text(
+                        dil,
+                        "I confirm persistent commands",
+                        "Kalici komutlari onayliyorum",
+                    ),
+                );
             }
         });
 
         if ui.button(t(dil, Message::DeployCommands)).clicked() {
-            self.deploy_commands(ui.ctx().clone());
+            self.deploy_commands(ui.ctx().clone(), dil);
         }
         if !self.status_msg.is_empty() {
             ui.colored_label(egui::Color32::YELLOW, &self.status_msg);
@@ -256,10 +270,10 @@ impl ToolScreen for BulkDeployTool {
                     .striped(true)
                     .spacing([20.0, 8.0])
                     .show(ui, |ui| {
-                        ui.label("Seç");
+                        ui.label(text(dil, "Select", "Sec"));
                         ui.label(t(dil, Message::DeviceName));
                         ui.label(t(dil, Message::IPAddress));
-                        ui.label("Durum");
+                        ui.label(text(dil, "Status", "Durum"));
                         ui.end_row();
 
                         for dev in devs.iter_mut() {

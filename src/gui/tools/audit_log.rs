@@ -2,7 +2,7 @@ use eframe::egui;
 
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 
 #[derive(Default)]
 pub struct AuditLogTool {
@@ -24,7 +24,7 @@ impl AuditLogTool {
     fn refresh(&mut self) {
         self.rows.clear();
         let Ok(conn) = db::get_connection() else {
-            self.status_msg = "Audit DB acilamadi.".to_string();
+            self.status_msg = "Audit database could not be opened.".to_string();
             return;
         };
 
@@ -42,7 +42,7 @@ impl AuditLogTool {
         let mut stmt = match conn.prepare(query) {
             Ok(stmt) => stmt,
             Err(e) => {
-                self.status_msg = format!("Audit sorgusu hazirlanamadi: {e}");
+                self.status_msg = format!("Audit query could not be prepared: {e}");
                 return;
             }
         };
@@ -56,9 +56,9 @@ impl AuditLogTool {
         match mapped {
             Ok(rows) => {
                 self.rows.extend(rows.flatten());
-                self.status_msg = format!("{} audit kaydi listelendi.", self.rows.len());
+                self.status_msg = format!("{} audit records listed.", self.rows.len());
             }
-            Err(e) => self.status_msg = format!("Audit okunamadi: {e}"),
+            Err(e) => self.status_msg = format!("Audit read failed: {e}"),
         }
     }
 }
@@ -79,29 +79,33 @@ impl ToolScreen for AuditLogTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🧾"
+        "AUD"
     }
 
     fn name(&self, _dil: Language) -> &'static str {
         "Audit Log"
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
         if self.rows.is_empty() && self.status_msg.is_empty() {
             self.refresh();
         }
 
         ui.heading("Audit Log");
-        ui.label("Cihaz, vault, discovery, backup ve bulk deploy operasyon izleri.");
+        ui.label(text(
+            dil,
+            "Operational trail for device, vault, discovery, backup, and bulk deploy actions.",
+            "Cihaz, vault, discovery, backup ve bulk deploy operasyon izleri.",
+        ));
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            ui.label("Filtre");
+            ui.label(text(dil, "Filter", "Filtre"));
             ui.text_edit_singleline(&mut self.filter);
-            if ui.button("Yenile").clicked() {
+            if ui.button(text(dil, "Refresh", "Yenile")).clicked() {
                 self.refresh();
             }
-            if ui.button("CSV kopyala").clicked() {
+            if ui.button(text(dil, "Copy CSV", "CSV kopyala")).clicked() {
                 ui.ctx().copy_text(csv_export(&self.rows));
             }
         });

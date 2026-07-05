@@ -1,6 +1,6 @@
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use crate::network::security::{self, Level};
 use eframe::egui;
 
@@ -91,56 +91,76 @@ impl ToolScreen for DashboardTool {
     }
 
     fn icon(&self) -> &'static str {
-        "📊"
+        "DASH"
     }
 
     fn name(&self, _dil: Language) -> &'static str {
         "Dashboard"
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
         let stats = Self::load_stats();
 
-        ui.heading("OxideNMS Operasyon Dashboard");
-        ui.label(
-            "Cihaz envanteri, konfigürasyon yedekleri, audit kayıtları ve güvenlik bulguları.",
-        );
+        ui.heading(text(
+            dil,
+            "OxideNMS Operations Dashboard",
+            "OxideNMS Operasyon Dashboard",
+        ));
+        ui.label(text(
+            dil,
+            "Device inventory, configuration backups, audit records, and security findings.",
+            "Cihaz envanteri, konfigurasyon yedekleri, audit kayitlari ve guvenlik bulgulari.",
+        ));
         ui.add_space(12.0);
 
         ui.horizontal_wrapped(|ui| {
-            Self::metric(ui, "Cihaz", stats.devices, "Envanterdeki toplam kayıt");
             Self::metric(
                 ui,
-                "Backup alan cihaz",
+                text(dil, "Devices", "Cihaz"),
+                stats.devices,
+                text(dil, "Total inventory records", "Envanterdeki toplam kayit"),
+            );
+            Self::metric(
+                ui,
+                text(dil, "Devices backed up", "Backup alan cihaz"),
                 stats.devices_with_backup,
-                "Config geçmişi olan cihaz",
+                text(
+                    dil,
+                    "Devices with config history",
+                    "Config gecmisi olan cihaz",
+                ),
             );
             Self::metric(
                 ui,
-                "Config snapshot",
+                text(dil, "Config snapshots", "Config snapshot"),
                 stats.config_snapshots,
-                "Toplam yedek sürümü",
+                text(dil, "Total backup versions", "Toplam yedek surumu"),
             );
-            Self::metric(ui, "Audit event", stats.audit_events, "Operasyon izi");
+            Self::metric(
+                ui,
+                text(dil, "Audit events", "Audit event"),
+                stats.audit_events,
+                text(dil, "Operational trail", "Operasyon izi"),
+            );
         });
 
         ui.add_space(12.0);
         ui.horizontal_wrapped(|ui| {
             Self::metric(
                 ui,
-                "Kritik finding",
+                text(dil, "Critical findings", "Kritik finding"),
                 stats.critical_findings,
-                "Son config sürümlerinde",
+                text(dil, "In latest config versions", "Son config surumlerinde"),
             );
             Self::metric(
                 ui,
-                "Uyarı finding",
+                text(dil, "Warning findings", "Uyari finding"),
                 stats.warning_findings,
-                "Son config sürümlerinde",
+                text(dil, "In latest config versions", "Son config surumlerinde"),
             );
             Self::metric(
                 ui,
-                "Son backup",
+                text(dil, "Last backup", "Son backup"),
                 stats.last_backup.as_deref().unwrap_or("-"),
                 "config_gecmisi MAX(recorded_at)",
             );
@@ -149,23 +169,39 @@ impl ToolScreen for DashboardTool {
         ui.add_space(16.0);
         ui.separator();
         ui.add_space(10.0);
-        ui.label(egui::RichText::new("Operasyon durumu").strong());
-        ui.label(format!("Veritabanı: {}", stats.db_path));
+        ui.label(egui::RichText::new(text(dil, "Operational status", "Operasyon durumu")).strong());
+        ui.label(format!(
+            "{}: {}",
+            text(dil, "Database", "Veritabani"),
+            stats.db_path
+        ));
 
         if stats.devices == 0 {
             ui.colored_label(
                 egui::Color32::YELLOW,
-                "Henüz cihaz yok. Device Manager üzerinden cihaz ekleyerek başlayın.",
+                text(
+                    dil,
+                    "No devices yet. Start by adding devices in Device Manager.",
+                    "Henuz cihaz yok. Device Manager uzerinden cihaz ekleyerek baslayin.",
+                ),
             );
         } else if stats.devices_with_backup < stats.devices {
             ui.colored_label(
                 egui::Color32::YELLOW,
-                "Bazı cihazların henüz konfigürasyon yedeği yok.",
+                text(
+                    dil,
+                    "Some devices do not have a configuration backup yet.",
+                    "Bazi cihazlarin henuz konfigurasyon yedegi yok.",
+                ),
             );
         } else {
             ui.colored_label(
                 egui::Color32::GREEN,
-                "Envanterdeki cihazlar için konfigürasyon geçmişi mevcut.",
+                text(
+                    dil,
+                    "Configuration history exists for all inventory devices.",
+                    "Envanterdeki cihazlar icin konfigurasyon gecmisi mevcut.",
+                ),
             );
         }
 

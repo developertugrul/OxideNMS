@@ -4,7 +4,7 @@ use std::thread;
 
 use super::{ToolEvent, ToolScreen};
 use crate::db;
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 
 enum SshState {
     Idle,
@@ -39,7 +39,7 @@ impl Default for SshTool {
 
 impl ToolScreen for SshTool {
     fn icon(&self) -> &'static str {
-        "🔌"
+        "SSH"
     }
 
     fn name(&self, dil: Language) -> &'static str {
@@ -52,7 +52,6 @@ impl ToolScreen for SshTool {
         ui.label(t(dil, Message::SshDescription));
         ui.add_space(10.0);
 
-        // Check if there is a message from the background thread
         if let Some(rx) = &self.rx
             && let Ok(result) = rx.try_recv()
         {
@@ -145,7 +144,6 @@ impl ToolScreen for SshTool {
                                     db::devices::get_or_create_device(&conn, &self.ip, &self.ip)
                                         .unwrap_or(1);
 
-                                // Kaydetmeden önce önceki konfigürasyonu alalım
                                 let mut prev_config = String::new();
                                 if let Ok(history) =
                                     db::devices::get_config_history(&conn, device_id)
@@ -156,7 +154,14 @@ impl ToolScreen for SshTool {
 
                                 match db::devices::save_config(&conn, device_id, config) {
                                     Ok(_) => {
-                                        self.db_mesaj = Some("Veritabanına Kaydedildi!".to_owned());
+                                        self.db_mesaj = Some(
+                                            text(
+                                                dil,
+                                                "Saved to database.",
+                                                "Veritabanina kaydedildi.",
+                                            )
+                                            .to_owned(),
+                                        );
                                         if !prev_config.is_empty() {
                                             return_event = Some(ToolEvent::SwitchToDiff {
                                                 old_config: prev_config,
@@ -164,10 +169,22 @@ impl ToolScreen for SshTool {
                                             });
                                         }
                                     }
-                                    Err(e) => self.db_mesaj = Some(format!("Kayıt Hatası: {}", e)),
+                                    Err(e) => {
+                                        self.db_mesaj = Some(format!(
+                                            "{}: {}",
+                                            text(dil, "Save failed", "Kayit hatasi"),
+                                            e
+                                        ))
+                                    }
                                 }
                             }
-                            Err(e) => self.db_mesaj = Some(format!("DB Hatası: {}", e)),
+                            Err(e) => {
+                                self.db_mesaj = Some(format!(
+                                    "{}: {}",
+                                    text(dil, "Database failed", "DB hatasi"),
+                                    e
+                                ))
+                            }
                         }
                     }
 
@@ -198,25 +215,21 @@ impl ToolScreen for SshTool {
 }
 
 fn connect_and_fetch(ip: &str, port: &str, user: &str, pass: &str) -> Result<String, String> {
-    use ssh;
-
     let addr = format!("{}:{}", ip, port);
-
-    // Disable logging output to stdout if it's annoying
 
     let mut session = ssh::create_session()
         .username(user)
         .password(pass)
         .connect(&addr)
-        .map_err(|e| format!("Bağlantı kurulamadı: {:?}", e))?
+        .map_err(|e| format!("Connection failed: {:?}", e))?
         .run_local();
 
     let exec = session
         .open_exec()
-        .map_err(|e| format!("Exec kanalı açılamadı: {:?}", e))?;
+        .map_err(|e| format!("Exec channel failed: {:?}", e))?;
     let vec: Vec<u8> = exec
         .send_command("show running-config")
-        .map_err(|e| format!("Komut gönderilemedi: {:?}", e))?;
+        .map_err(|e| format!("Command failed: {:?}", e))?;
 
     let output = String::from_utf8_lossy(&vec).into_owned();
 

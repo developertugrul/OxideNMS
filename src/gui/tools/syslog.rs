@@ -1,5 +1,5 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use chrono::{DateTime, Local};
 use eframe::egui;
 use std::net::UdpSocket;
@@ -27,8 +27,8 @@ impl Default for SyslogTool {
         Self {
             messages: Arc::new(Mutex::new(Vec::new())),
             is_running: Arc::new(Mutex::new(false)),
-            bind_port: 514, // Default syslog port
-            status_msg: "Durduruldu".to_string(),
+            bind_port: 514,
+            status_msg: "Stopped".to_string(),
             auto_scroll: true,
         }
     }
@@ -48,17 +48,17 @@ impl SyslogTool {
         let socket = match UdpSocket::bind(&bind_addr) {
             Ok(s) => s,
             Err(e) => {
-                self.status_msg = format!("Port hatası (Yönetici izni gerekebilir?): {}", e);
+                self.status_msg = format!("Port error (administrator rights may be required): {e}");
                 return;
             }
         };
 
         if socket.set_nonblocking(true).is_err() {
-            self.status_msg = "Non-blocking mod hatası".to_string();
+            self.status_msg = "Non-blocking mode failed".to_string();
             return;
         }
 
-        self.status_msg = format!("{} portunda dinleniyor...", self.bind_port);
+        self.status_msg = format!("Listening on port {}...", self.bind_port);
         *self.is_running.lock().unwrap() = true;
 
         let messages_clone = self.messages.clone();
@@ -74,8 +74,6 @@ impl SyslogTool {
                 match socket.recv_from(&mut buf) {
                     Ok((amt, src)) => {
                         let raw_msg = String::from_utf8_lossy(&buf[..amt]).to_string();
-
-                        // Basit Syslog parsing (RFC 3164/5424) <PRIVAL>
                         let mut severity = "INFO".to_string();
                         let mut msg_body = raw_msg.clone();
 
@@ -109,7 +107,6 @@ impl SyslogTool {
 
                         if let Ok(mut lock) = messages_clone.lock() {
                             lock.push(log_entry);
-                            // Sınırlı log tut (son 1000)
                             if lock.len() > 1000 {
                                 lock.remove(0);
                             }
@@ -117,11 +114,9 @@ impl SyslogTool {
                         ctx.request_repaint();
                     }
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                        // Veri yok, biraz uyu
                         thread::sleep(std::time::Duration::from_millis(100));
                     }
                     Err(_) => {
-                        // Diğer hatalar
                         thread::sleep(std::time::Duration::from_millis(100));
                     }
                 }
@@ -133,7 +128,7 @@ impl SyslogTool {
         if let Ok(mut lock) = self.is_running.lock() {
             *lock = false;
         }
-        self.status_msg = "Durduruldu".to_string();
+        self.status_msg = "Stopped".to_string();
     }
 }
 
@@ -143,31 +138,33 @@ impl ToolScreen for SyslogTool {
     }
 
     fn icon(&self) -> &'static str {
-        "📡"
+        "SYS"
     }
 
     fn name(&self, _dil: Language) -> &'static str {
-        "Syslog Server" // Will add translations later
+        "Syslog Server"
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
-        ui.heading("Syslog Sunucusu (Canlı Alarmlar)");
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
+        ui.heading(text(
+            dil,
+            "Syslog Server (Live Alerts)",
+            "Syslog Sunucusu (Canli Alarmlar)",
+        ));
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            ui.label("Dinlenecek Port:");
+            ui.label(text(dil, "Listen port:", "Dinlenecek port:"));
             ui.add(egui::DragValue::new(&mut self.bind_port));
 
             let is_running = *self.is_running.lock().unwrap();
 
             if is_running {
-                if ui.button("Durdur").clicked() {
+                if ui.button(text(dil, "Stop", "Durdur")).clicked() {
                     self.stop_server();
                 }
-            } else {
-                if ui.button("Başlat").clicked() {
-                    self.start_server(ui.ctx().clone());
-                }
+            } else if ui.button(text(dil, "Start", "Baslat")).clicked() {
+                self.start_server(ui.ctx().clone());
             }
 
             ui.label(egui::RichText::new(&self.status_msg).color(if is_running {
@@ -177,12 +174,17 @@ impl ToolScreen for SyslogTool {
             }));
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Logları Temizle").clicked()
+                if ui
+                    .button(text(dil, "Clear logs", "Loglari temizle"))
+                    .clicked()
                     && let Ok(mut lock) = self.messages.lock()
                 {
                     lock.clear();
                 }
-                ui.checkbox(&mut self.auto_scroll, "Oto-Kaydır");
+                ui.checkbox(
+                    &mut self.auto_scroll,
+                    text(dil, "Auto-scroll", "Oto-kaydir"),
+                );
             });
         });
 
@@ -199,10 +201,10 @@ impl ToolScreen for SyslogTool {
                     .striped(true)
                     .spacing([15.0, 8.0])
                     .show(ui, |ui| {
-                        ui.label(egui::RichText::new("Zaman").strong());
-                        ui.label(egui::RichText::new("Kaynak IP").strong());
-                        ui.label(egui::RichText::new("Seviye").strong());
-                        ui.label(egui::RichText::new("Mesaj").strong());
+                        ui.label(egui::RichText::new(text(dil, "Time", "Zaman")).strong());
+                        ui.label(egui::RichText::new(text(dil, "Source IP", "Kaynak IP")).strong());
+                        ui.label(egui::RichText::new(text(dil, "Severity", "Seviye")).strong());
+                        ui.label(egui::RichText::new(text(dil, "Message", "Mesaj")).strong());
                         ui.end_row();
 
                         for msg in messages {

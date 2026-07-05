@@ -17,8 +17,8 @@ pub mod langs;
 /// Desteklenen langs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Language {
-    #[default]
     Turkish,
+    #[default]
     English,
     German,
     Russian,
@@ -253,5 +253,15 @@ pub fn t(dil: Language, mesaj: Message) -> &'static str {
         Language::Hungarian => hu(mesaj),
         Language::Bulgarian => bg(mesaj),
         Language::Portuguese => pt(mesaj),
+    }
+}
+
+/// Lightweight translation helper for newer tool screens.
+/// Turkish gets the Turkish string; every other incomplete locale falls back to English.
+pub fn text(dil: Language, english: &'static str, turkish: &'static str) -> &'static str {
+    if matches!(dil, Language::Turkish) {
+        turkish
+    } else {
+        english
     }
 }

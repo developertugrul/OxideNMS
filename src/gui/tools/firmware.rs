@@ -1,5 +1,5 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use eframe::egui;
 
 pub struct FirmwareTool {
@@ -32,63 +32,78 @@ impl ToolScreen for FirmwareTool {
     }
 
     fn icon(&self) -> &'static str {
-        "💾"
+        "IOS"
     }
 
-    fn name(&self, _dil: Language) -> &'static str {
-        "Firmware (IOS) Güncelleme"
+    fn name(&self, dil: Language) -> &'static str {
+        text(dil, "Firmware (IOS) Update", "Firmware (IOS) Guncelleme")
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
-        ui.heading("Otomatik Firmware (IOS) Güncelleme Yöneticisi");
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
+        ui.heading(text(
+            dil,
+            "Firmware (IOS) Update Manager",
+            "Firmware (IOS) Guncelleme Yoneticisi",
+        ));
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("TFTP Sunucu IP:").strong());
+            ui.label(egui::RichText::new(text(dil, "TFTP server IP:", "TFTP sunucu IP:")).strong());
             ui.add(egui::TextEdit::singleline(&mut self.tftp_ip).desired_width(120.0));
 
             ui.add_space(10.0);
 
-            ui.label(egui::RichText::new("IOS Dosya Adı (bin):").strong());
+            ui.label(
+                egui::RichText::new(text(dil, "IOS file name (bin):", "IOS dosya adi (bin):"))
+                    .strong(),
+            );
             ui.add(egui::TextEdit::singleline(&mut self.filename).desired_width(200.0));
         });
 
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Hedef Cihaz IP:").strong());
+            ui.label(
+                egui::RichText::new(text(dil, "Target device IP:", "Hedef cihaz IP:")).strong(),
+            );
             ui.add(egui::TextEdit::singleline(&mut self.device_ip).desired_width(120.0));
         });
 
         ui.add_space(20.0);
 
         if ui
-            .button(egui::RichText::new("🚀 Gönder ve Güncelle (copy tftp: flash:)").size(16.0))
+            .button(
+                egui::RichText::new(text(
+                    dil,
+                    "Send and update (copy tftp: flash:)",
+                    "Gonder ve guncelle (copy tftp: flash:)",
+                ))
+                .size(16.0),
+            )
             .clicked()
         {
             self.logs.push_str(&format!(
-                "\n[BİLGİ] {} hedefine bağlanılıyor...\n",
+                "\n[INFO] Connecting to target {}...\n",
                 self.device_ip
             ));
             self.logs.push_str(&format!(
-                "[KOMUT] copy tftp://{}/{} flash:\n",
+                "[COMMAND] copy tftp://{}/{} flash:\n",
                 self.tftp_ip, self.filename
             ));
             self.logs
-                .push_str("[SİMÜLASYON] Cihaz hafızası kontrol ediliyor...\n");
+                .push_str("[SIMULATION] Checking device flash storage...\n");
             self.logs.push_str(
-                "[SİMÜLASYON] Dosya aktarımı başlatıldı... (Bu işlem normalde 10-15 dk sürer)\n",
-            );
-            self.logs.push_str(
-                "[BAŞARILI] Firmware aktarımı tamamlandı. Boot variable ayarlanıyor...\n",
+                "[SIMULATION] File transfer started... (normally this takes 10-15 minutes)\n",
             );
             self.logs
-                .push_str(&format!("[KOMUT] boot system flash:/{}\n", self.filename));
-            self.logs.push_str("[BİLGİ] Yeniden başlatma için hazır!\n");
+                .push_str("[SUCCESS] Firmware transfer completed. Setting boot variable...\n");
+            self.logs
+                .push_str(&format!("[COMMAND] boot system flash:/{}\n", self.filename));
+            self.logs.push_str("[INFO] Ready for reload.\n");
         }
 
         ui.add_space(20.0);
-        ui.label(egui::RichText::new("İşlem Logları:").strong());
+        ui.label(egui::RichText::new(text(dil, "Operation logs:", "Islem loglari:")).strong());
 
         egui::ScrollArea::both().show(ui, |ui| {
             ui.add(

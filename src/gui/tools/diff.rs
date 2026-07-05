@@ -2,7 +2,7 @@ use eframe::egui;
 
 use super::{ToolEvent, ToolScreen};
 use crate::db;
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use crate::network::diff::{self, DiffRow, DiffType};
 
 pub struct DiffTool {
@@ -31,7 +31,7 @@ impl ToolScreen for DiffTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🔄"
+        "DIF"
     }
 
     fn name(&self, dil: Language) -> &'static str {
@@ -73,23 +73,37 @@ impl ToolScreen for DiffTool {
 
             ui.add_space(20.0);
 
-            ui.label("Device Adı:");
+            ui.label(text(dil, "Device name:", "Cihaz adi:"));
             ui.text_edit_singleline(&mut self.device_name);
             if ui.button(t(dil, Message::DiffSaveToDb)).clicked() {
                 match db::get_connection() {
                     Ok(conn) => {
-                        let device_id = db::devices::get_or_create_device(
-                            &conn,
-                            &self.device_name,
-                            "Bilinmiyor",
-                        )
-                        .unwrap_or(1);
+                        let device_id =
+                            db::devices::get_or_create_device(&conn, &self.device_name, "Unknown")
+                                .unwrap_or(1);
                         match db::devices::save_config(&conn, device_id, &self.new_config) {
-                            Ok(_) => self.db_mesaj = Some("Veritabanına Saved!".to_owned()),
-                            Err(e) => self.db_mesaj = Some(format!("Kayıt Hatası: {}", e)),
+                            Ok(_) => {
+                                self.db_mesaj = Some(
+                                    text(dil, "Saved to database.", "Veritabanina kaydedildi.")
+                                        .to_owned(),
+                                )
+                            }
+                            Err(e) => {
+                                self.db_mesaj = Some(format!(
+                                    "{}: {}",
+                                    text(dil, "Save failed", "Kayit hatasi"),
+                                    e
+                                ))
+                            }
                         }
                     }
-                    Err(e) => self.db_mesaj = Some(format!("Bağlantı Hatası: {}", e)),
+                    Err(e) => {
+                        self.db_mesaj = Some(format!(
+                            "{}: {}",
+                            text(dil, "Connection failed", "Baglanti hatasi"),
+                            e
+                        ))
+                    }
                 }
             }
 

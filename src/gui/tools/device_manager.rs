@@ -1,7 +1,7 @@
 use crate::crypto;
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use eframe::egui;
 
 #[derive(Default)]
@@ -74,7 +74,7 @@ impl DeviceManagerTool {
         list
     }
 
-    fn delete_device(&mut self, id: i32) {
+    fn delete_device(&mut self, id: i32, dil: Language) {
         if let Ok(conn) = db::get_connection() {
             let _ = conn.execute("DELETE FROM config_gecmisi WHERE device_id = ?1", [id]);
             if conn
@@ -87,14 +87,19 @@ impl DeviceManagerTool {
                     "success",
                     "Device removed",
                 );
-                self.status_msg = "Cihaz silindi.".to_string();
+                self.status_msg = text(dil, "Device deleted.", "Cihaz silindi.").to_string();
             }
         }
     }
 
     fn save_device(&mut self, dil: Language) {
         if self.form.name.is_empty() || self.form.ip.is_empty() {
-            self.status_msg = "Cihaz adi ve IP zorunludur.".to_string();
+            self.status_msg = text(
+                dil,
+                "Device name and IP are required.",
+                "Cihaz adi ve IP zorunludur.",
+            )
+            .to_string();
             return;
         }
 
@@ -132,7 +137,7 @@ impl DeviceManagerTool {
                 self.status_msg = t(dil, Message::DeviceSaved).to_string();
                 self.form = DeviceForm::default();
             } else if let Err(e) = result {
-                self.status_msg = format!("Kayit hatasi: {e}");
+                self.status_msg = format!("{}: {e}", text(dil, "Save failed", "Kayit hatasi"));
             }
         }
     }
@@ -163,7 +168,8 @@ impl ToolScreen for DeviceManagerTool {
                     match db::verify_or_initialize_vault(&self.master_pass) {
                         Ok(()) => {
                             self.unlocked = true;
-                            self.status_msg = "Vault dogrulandi.".to_string();
+                            self.status_msg =
+                                text(dil, "Vault verified.", "Vault dogrulandi.").to_string();
                         }
                         Err(e) => self.status_msg = e,
                     }
@@ -264,7 +270,7 @@ impl ToolScreen for DeviceManagerTool {
                     }
 
                     if let Some(id) = delete_id {
-                        self.delete_device(id);
+                        self.delete_device(id, dil);
                     }
                 });
         });

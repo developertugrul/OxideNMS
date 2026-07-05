@@ -1,5 +1,5 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::Language;
+use crate::i18n::{Language, text};
 use eframe::egui;
 use minijinja::Environment;
 
@@ -45,27 +45,21 @@ impl TemplateTool {
         self.error_msg.clear();
         let mut env = Environment::new();
 
-        if let Err(e) = env.add_template(&self.template_name, &self.template_content) {
-            self.error_msg = format!("Şablon Hatası: {}", e);
+        if let Err(e) =
+            env.add_template_owned(self.template_name.clone(), self.template_content.clone())
+        {
+            self.error_msg = format!("Template error: {e}");
             return;
         }
 
         let tmpl = match env.get_template(&self.template_name) {
             Ok(t) => t,
             Err(e) => {
-                self.error_msg = format!("Şablon Bulunamadı: {}", e);
+                self.error_msg = format!("Template not found: {e}");
                 return;
             }
         };
 
-        // Değişkenleri dinamik olarak context'e ekle
-        let _ctx = minijinja::Value::from(std::collections::BTreeMap::<String, String>::new());
-        for (_k, _v) in &self.vars {
-            // Basit bir şekilde manuel JSON/Map oluşturuyoruz
-        }
-
-        // Minijinja'nın `context!` makrosu sabit anahtarlar ister. Dinamik dict oluşturmak için serde veya value::Map kullanabiliriz.
-        // Rust'ta en kolay yol `BTreeMap`'i `Value`'ya çevirmektir.
         let mut map = std::collections::BTreeMap::new();
         for (k, v) in &self.vars {
             map.insert(k.clone(), v.clone());
@@ -73,7 +67,7 @@ impl TemplateTool {
 
         match tmpl.render(map) {
             Ok(res) => self.rendered_output = res,
-            Err(e) => self.error_msg = format!("Render Hatası: {}", e),
+            Err(e) => self.error_msg = format!("Render failed: {e}"),
         }
     }
 }
@@ -84,21 +78,25 @@ impl ToolScreen for TemplateTool {
     }
 
     fn icon(&self) -> &'static str {
-        "📝"
+        "TPL"
     }
 
-    fn name(&self, _dil: Language) -> &'static str {
-        "Şablon Motoru"
+    fn name(&self, dil: Language) -> &'static str {
+        text(dil, "Template Engine", "Sablon Motoru")
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, _dil: Language) -> Option<ToolEvent> {
-        ui.heading("Konfigürasyon Şablon Motoru (Jinja2)");
+    fn draw(&mut self, ui: &mut egui::Ui, dil: Language) -> Option<ToolEvent> {
+        ui.heading(text(
+            dil,
+            "Configuration Template Engine (Jinja2)",
+            "Konfigurasyon Sablon Motoru (Jinja2)",
+        ));
         ui.add_space(10.0);
 
         egui::SidePanel::left("template_left_panel")
             .exact_width(300.0)
             .show_inside(ui, |ui| {
-                ui.label(egui::RichText::new("Şablon Kodu (Template)").strong());
+                ui.label(egui::RichText::new(text(dil, "Template code", "Sablon kodu")).strong());
                 ui.add(
                     egui::TextEdit::multiline(&mut self.template_content)
                         .font(egui::TextStyle::Monospace)
@@ -107,7 +105,7 @@ impl ToolScreen for TemplateTool {
                 );
 
                 ui.add_space(15.0);
-                ui.label(egui::RichText::new("Değişkenler (Variables)").strong());
+                ui.label(egui::RichText::new(text(dil, "Variables", "Degiskenler")).strong());
 
                 let mut to_remove = None;
                 for (i, (key, val)) in self.vars.iter_mut().enumerate() {
@@ -115,7 +113,7 @@ impl ToolScreen for TemplateTool {
                         ui.add(egui::TextEdit::singleline(key).desired_width(100.0));
                         ui.label("=");
                         ui.add(egui::TextEdit::singleline(val).desired_width(120.0));
-                        if ui.button("❌").clicked() {
+                        if ui.button("X").clicked() {
                             to_remove = Some(i);
                         }
                     });
@@ -125,15 +123,18 @@ impl ToolScreen for TemplateTool {
                     self.vars.remove(idx);
                 }
 
-                if ui.button("➕ Değişken Ekle").clicked() {
+                if ui
+                    .button(text(dil, "Add variable", "Degisken ekle"))
+                    .clicked()
+                {
                     self.vars
-                        .push(("yeni_degisken".to_string(), "deger".to_string()));
+                        .push(("new_variable".to_string(), "value".to_string()));
                 }
 
                 ui.add_space(20.0);
 
                 if ui
-                    .button(egui::RichText::new("⚙️ Derle (Render)").size(16.0))
+                    .button(egui::RichText::new(text(dil, "Render", "Derle")).size(16.0))
                     .clicked()
                 {
                     self.render_template();
@@ -145,7 +146,7 @@ impl ToolScreen for TemplateTool {
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
-            ui.label(egui::RichText::new("Çıktı (Rendered Config)").strong());
+            ui.label(egui::RichText::new(text(dil, "Output", "Cikti")).strong());
             ui.add_space(5.0);
 
             egui::ScrollArea::both().show(ui, |ui| {
@@ -158,7 +159,10 @@ impl ToolScreen for TemplateTool {
                 );
             });
 
-            if ui.button("📋 Panoya Kopyala").clicked() {
+            if ui
+                .button(text(dil, "Copy to clipboard", "Panoya kopyala"))
+                .clicked()
+            {
                 ui.ctx().copy_text(self.rendered_output.clone());
             }
         });

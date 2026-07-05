@@ -1,5 +1,5 @@
 use super::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use eframe::egui;
 use std::net::Ipv4Addr;
 
@@ -35,7 +35,7 @@ impl ToolScreen for VlanTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🏢"
+        "VLAN"
     }
 
     fn name(&self, dil: Language) -> &'static str {
@@ -55,7 +55,6 @@ impl ToolScreen for VlanTool {
 
         ui.add_space(10.0);
 
-        // Departments Table
         let mut index_to_remove = None;
         egui::Grid::new("vlan_departments")
             .num_columns(4)
@@ -71,7 +70,7 @@ impl ToolScreen for VlanTool {
                     ui.text_edit_singleline(&mut dept.name);
                     ui.add(egui::TextEdit::singleline(&mut dept.vlan_id).desired_width(50.0));
                     ui.add(egui::TextEdit::singleline(&mut dept.hosts).desired_width(80.0));
-                    if ui.button("❌").clicked() {
+                    if ui.button("X").clicked() {
                         index_to_remove = Some(i);
                     }
                     ui.end_row();
@@ -94,7 +93,7 @@ impl ToolScreen for VlanTool {
             }
 
             if ui.button(t(dil, Message::VlanGenerate)).clicked() {
-                self.generate_config();
+                self.generate_config(dil);
             }
         });
 
@@ -119,7 +118,7 @@ impl ToolScreen for VlanTool {
 }
 
 impl VlanTool {
-    fn generate_config(&mut self) {
+    fn generate_config(&mut self, dil: Language) {
         use crate::network::Subnet;
 
         self.result_config.clear();
@@ -127,12 +126,16 @@ impl VlanTool {
         let root_net = match Subnet::parse(&self.network_prefix) {
             Ok(net) => net,
             Err(_) => {
-                self.result_config = "Geçersiz Ana Ağ CIDR formatı!".to_owned();
+                self.result_config = text(
+                    dil,
+                    "Invalid main network CIDR format.",
+                    "Gecersiz ana ag CIDR formati.",
+                )
+                .to_owned();
                 return;
             }
         };
 
-        // Parse and sort departments by host size descending
         let mut parsed_depts = Vec::new();
         for d in &self.departments {
             let hosts = d.hosts.parse::<u32>().unwrap_or(0);
@@ -149,7 +152,6 @@ impl VlanTool {
                 continue;
             }
 
-            // Calculate required prefix
             let mut prefix = 32;
             while (2u32.pow(32 - prefix) as i64) - 2 < hosts as i64 {
                 if prefix == 0 {
@@ -158,7 +160,6 @@ impl VlanTool {
                 prefix -= 1;
             }
 
-            // Align current_ip to the subnet size boundary
             let step = 2u32.pow(32 - prefix);
             if current_ip % step != 0 {
                 current_ip += step - (current_ip % step);
