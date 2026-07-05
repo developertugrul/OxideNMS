@@ -10,6 +10,7 @@ jobs:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -21,9 +22,13 @@ jobs:
             artifact_name: oxidenms-windows.exe
             asset_name: oxidenms-windows-amd64.exe
           - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: oxidenms-mac-arm64
+            asset_name: oxidenms-macos-arm64
+          - os: macos-13
             target: x86_64-apple-darwin
-            artifact_name: oxidenms-mac
-            asset_name: oxidenms-macos-amd64
+            artifact_name: oxidenms-mac-x86_64
+            asset_name: oxidenms-macos-x86_64
 
     steps:
       - name: Checkout code

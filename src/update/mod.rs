@@ -16,7 +16,7 @@ use crate::error::UpdateError;
 ///
 /// NOT: Burayi kendi yayin adresinle degistir. Test icin `CISCO_MANIFEST_URL`
 /// ortam degiskeni bunu gecersiz kilar (asagidaki `manifest_url`'e bak).
-pub const DEFAULT_MANIFEST_URL: &str = "https://ornek.com/cisco/latest.json";
+pub const DEFAULT_MANIFEST_URL: &str = "https://raw.githubusercontent.com/developertugrul/OxideNMS/main/latest.json";
 
 /// Sunucudaki surum bilgisi dosyasinin (JSON) yapisi.
 ///
