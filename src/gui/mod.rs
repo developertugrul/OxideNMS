@@ -13,9 +13,9 @@ use eframe::egui;
 pub mod tools;
 
 use tools::{
-    AuditLogTool, BackupTool, BulkDeployTool, DashboardTool, DeviceManagerTool, DiffTool,
-    DiscoveryTool, FirmwareTool, SecurityTool, SettingsTool, SnmpMapTool, SshTool, SubnetTool,
-    SyslogTool, TemplateTool, ToolEvent, ToolScreen, TopologyTool, VlanTool,
+    AuditLogTool, BackupTool, BulkDeployTool, ConfigHistoryTool, DashboardTool, DeviceManagerTool,
+    DiffTool, DiscoveryTool, FirmwareTool, SecurityTool, SettingsTool, SnmpMapTool, SshTool,
+    SubnetTool, SyslogTool, TemplateTool, ToolEvent, ToolScreen, TopologyTool, VlanTool,
 };
 
 use crate::i18n::{Language, Message, t};
@@ -177,6 +177,7 @@ impl CiscoApp {
                 Box::new(DiscoveryTool::default()),
                 Box::new(SecurityTool::default()),
                 Box::new(BackupTool::default()),
+                Box::new(ConfigHistoryTool::default()),
                 Box::new(BulkDeployTool::default()),
                 Box::new(DiffTool::default()),
                 Box::new(SshTool::default()),
@@ -299,10 +300,10 @@ impl CiscoApp {
 
                 // Kategorileri tanımla: (Başlık, [Tool İndeksleri])
                 let kategoriler = vec![
-                    ("Operasyon", vec![0, 1, 2, 3, 4, 5, 6, 7, 8]),
-                    ("Izleme & Topoloji", vec![9, 10, 11]),
-                    ("Planlama & Lab", vec![12, 13, 14, 15]),
-                    ("Sistem", vec![16]),
+                    ("Operasyon", vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+                    ("Izleme & Topoloji", vec![10, 11, 12]),
+                    ("Planlama & Lab", vec![13, 14, 15, 16]),
+                    ("Sistem", vec![17]),
                 ];
 
                 for (kat_adi, indeksler) in kategoriler {
