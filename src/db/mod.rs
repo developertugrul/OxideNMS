@@ -54,6 +54,14 @@ pub fn get_connection() -> Result<Connection> {
         "ALTER TABLE devices ADD COLUMN encrypted_credentials TEXT",
         [],
     );
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN platform TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN model TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN serial TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN ios_version TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN site TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN role TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN tags TEXT", []);
+    let _ = conn.execute("ALTER TABLE devices ADD COLUMN last_seen DATETIME", []);
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS config_gecmisi (

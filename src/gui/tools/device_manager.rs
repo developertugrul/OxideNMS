@@ -8,14 +8,36 @@ use eframe::egui;
 pub struct DeviceManagerTool {
     master_pass: String,
     unlocked: bool,
-
-    // Add form
-    new_name: String,
-    new_ip: String,
-    new_user: String,
-    new_pass: String,
-
     status_msg: String,
+    form: DeviceForm,
+}
+
+#[derive(Default)]
+struct DeviceForm {
+    name: String,
+    ip: String,
+    user: String,
+    pass: String,
+    platform: String,
+    model: String,
+    serial: String,
+    ios_version: String,
+    site: String,
+    role: String,
+    tags: String,
+}
+
+struct DeviceListRow {
+    id: i32,
+    name: String,
+    ip: String,
+    user: String,
+    platform: String,
+    model: String,
+    ios_version: String,
+    site: String,
+    role: String,
+    tags: String,
 }
 
 impl DeviceManagerTool {
@@ -23,24 +45,30 @@ impl DeviceManagerTool {
         Self::default()
     }
 
-    fn fetch_devices(&self) -> Vec<(i32, String, String, String)> {
+    fn fetch_devices(&self) -> Vec<DeviceListRow> {
         let mut list = Vec::new();
         if let Ok(conn) = db::get_connection()
-            && let Ok(mut stmt) =
-                conn.prepare("SELECT id, name, ip_address, username FROM devices ORDER BY id DESC")
+            && let Ok(mut stmt) = conn.prepare(
+                "SELECT id, name, ip_address, username, platform, model, ios_version, site, role, tags
+                 FROM devices ORDER BY id DESC",
+            )
         {
             let dev_iter = stmt.query_map([], |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                ))
+                Ok(DeviceListRow {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    ip: row.get(2)?,
+                    user: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                    platform: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                    model: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+                    ios_version: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                    site: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
+                    role: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                    tags: row.get::<_, Option<String>>(9)?.unwrap_or_default(),
+                })
             });
             if let Ok(iter) = dev_iter {
-                for dev in iter.flatten() {
-                    list.push(dev);
-                }
+                list.extend(iter.flatten());
             }
         }
         list
@@ -63,6 +91,51 @@ impl DeviceManagerTool {
             }
         }
     }
+
+    fn save_device(&mut self, dil: Language) {
+        if self.form.name.is_empty() || self.form.ip.is_empty() {
+            self.status_msg = "Cihaz adi ve IP zorunludur.".to_string();
+            return;
+        }
+
+        let enc_pass = match crypto::encrypt_credential(&self.form.pass, &self.master_pass) {
+            Ok(value) => value,
+            Err(e) => {
+                self.status_msg = e;
+                return;
+            }
+        };
+
+        if let Ok(conn) = db::get_connection() {
+            let result = conn.execute(
+                "INSERT INTO devices (
+                    name, ip_address, username, encrypted_credentials,
+                    platform, model, serial, ios_version, site, role, tags
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                [
+                    &self.form.name,
+                    &self.form.ip,
+                    &self.form.user,
+                    &enc_pass,
+                    &self.form.platform,
+                    &self.form.model,
+                    &self.form.serial,
+                    &self.form.ios_version,
+                    &self.form.site,
+                    &self.form.role,
+                    &self.form.tags,
+                ],
+            );
+
+            if result.is_ok() {
+                db::record_audit("device.create", &self.form.ip, "success", &self.form.name);
+                self.status_msg = t(dil, Message::DeviceSaved).to_string();
+                self.form = DeviceForm::default();
+            } else if let Err(e) = result {
+                self.status_msg = format!("Kayit hatasi: {e}");
+            }
+        }
+    }
 }
 
 impl ToolScreen for DeviceManagerTool {
@@ -71,7 +144,7 @@ impl ToolScreen for DeviceManagerTool {
     }
 
     fn icon(&self) -> &'static str {
-        "🔒"
+        "🔐"
     }
 
     fn name(&self, dil: Language) -> &'static str {
@@ -103,56 +176,51 @@ impl ToolScreen for DeviceManagerTool {
         }
 
         ui.label(egui::RichText::new(t(dil, Message::Unlocked)).color(egui::Color32::GREEN));
-        ui.add_space(20.0);
+        ui.add_space(12.0);
 
-        // Add Device Form
         ui.group(|ui| {
             ui.label(egui::RichText::new(t(dil, Message::AddDevice)).strong());
-            ui.horizontal(|ui| {
-                ui.label(t(dil, Message::DeviceName));
-                ui.text_edit_singleline(&mut self.new_name);
-            });
-            ui.horizontal(|ui| {
-                ui.label(t(dil, Message::IPAddress));
-                ui.text_edit_singleline(&mut self.new_ip);
-            });
-            ui.horizontal(|ui| {
-                ui.label(t(dil, Message::Username));
-                ui.text_edit_singleline(&mut self.new_user);
-            });
-            ui.horizontal(|ui| {
-                ui.label(t(dil, Message::Password));
-                ui.add(egui::TextEdit::singleline(&mut self.new_pass).password(true));
-            });
+            egui::Grid::new("device_form")
+                .num_columns(4)
+                .spacing([12.0, 8.0])
+                .show(ui, |ui| {
+                    ui.label(t(dil, Message::DeviceName));
+                    ui.text_edit_singleline(&mut self.form.name);
+                    ui.label(t(dil, Message::IPAddress));
+                    ui.text_edit_singleline(&mut self.form.ip);
+                    ui.end_row();
 
-            if ui.button(t(dil, Message::SaveDevice)).clicked()
-                && !self.new_name.is_empty()
-                && !self.new_ip.is_empty()
-            {
-                match crypto::encrypt_credential(&self.new_pass, &self.master_pass) {
-                    Ok(enc_pass) => {
-                        if let Ok(conn) = db::get_connection() {
-                            let result = conn.execute(
-                            "INSERT INTO devices (name, ip_address, username, encrypted_credentials) VALUES (?1, ?2, ?3, ?4)",
-                            [&self.new_name, &self.new_ip, &self.new_user, &enc_pass],
-                        );
-                            if result.is_ok() {
-                                db::record_audit(
-                                    "device.create",
-                                    &self.new_ip,
-                                    "success",
-                                    &self.new_name,
-                                );
-                                self.status_msg = t(dil, Message::DeviceSaved).to_string();
-                                self.new_name.clear();
-                                self.new_ip.clear();
-                                self.new_user.clear();
-                                self.new_pass.clear();
-                            }
-                        }
-                    }
-                    Err(e) => self.status_msg = e,
-                }
+                    ui.label(t(dil, Message::Username));
+                    ui.text_edit_singleline(&mut self.form.user);
+                    ui.label(t(dil, Message::Password));
+                    ui.add(egui::TextEdit::singleline(&mut self.form.pass).password(true));
+                    ui.end_row();
+
+                    ui.label("Platform");
+                    ui.text_edit_singleline(&mut self.form.platform);
+                    ui.label("Model");
+                    ui.text_edit_singleline(&mut self.form.model);
+                    ui.end_row();
+
+                    ui.label("Serial");
+                    ui.text_edit_singleline(&mut self.form.serial);
+                    ui.label("IOS version");
+                    ui.text_edit_singleline(&mut self.form.ios_version);
+                    ui.end_row();
+
+                    ui.label("Site");
+                    ui.text_edit_singleline(&mut self.form.site);
+                    ui.label("Role");
+                    ui.text_edit_singleline(&mut self.form.role);
+                    ui.end_row();
+
+                    ui.label("Tags");
+                    ui.text_edit_singleline(&mut self.form.tags);
+                    ui.end_row();
+                });
+
+            if ui.button(t(dil, Message::SaveDevice)).clicked() {
+                self.save_device(dil);
             }
         });
 
@@ -163,28 +231,34 @@ impl ToolScreen for DeviceManagerTool {
             );
         }
 
-        ui.add_space(20.0);
-
-        // List Devices
+        ui.add_space(14.0);
         let devices = self.fetch_devices();
-        egui::ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::both().show(ui, |ui| {
             egui::Grid::new("device_grid")
                 .striped(true)
-                .spacing([20.0, 8.0])
+                .spacing([16.0, 8.0])
                 .show(ui, |ui| {
-                    ui.label(egui::RichText::new(t(dil, Message::DeviceName)).strong());
-                    ui.label(egui::RichText::new(t(dil, Message::IPAddress)).strong());
-                    ui.label(egui::RichText::new(t(dil, Message::Username)).strong());
-                    ui.label("");
+                    for header in [
+                        "Name", "IP", "User", "Platform", "Model", "IOS", "Site", "Role", "Tags",
+                        "",
+                    ] {
+                        ui.label(egui::RichText::new(header).strong());
+                    }
                     ui.end_row();
 
                     let mut delete_id = None;
-                    for (id, name, ip, user) in devices {
-                        ui.label(name);
-                        ui.label(ip);
-                        ui.label(user);
+                    for device in devices {
+                        ui.label(device.name);
+                        ui.label(device.ip);
+                        ui.label(device.user);
+                        ui.label(device.platform);
+                        ui.label(device.model);
+                        ui.label(device.ios_version);
+                        ui.label(device.site);
+                        ui.label(device.role);
+                        ui.label(device.tags);
                         if ui.button(t(dil, Message::DeleteDevice)).clicked() {
-                            delete_id = Some(id);
+                            delete_id = Some(device.id);
                         }
                         ui.end_row();
                     }
