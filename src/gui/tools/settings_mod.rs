@@ -80,11 +80,11 @@ impl ToolScreen for SettingsTool {
         ui.add_space(12.0);
 
         // --- Manifest URL ---
-        // Github'a gore otomatik doldurulur ve degistirilemez.
-        self.ayar.manifest_url = crate::update::DEFAULT_MANIFEST_URL.to_string();
+        // Github release politikasina gore sabittir ve kullanici tarafindan degistirilemez.
+        let mut manifest_url = crate::update::DEFAULT_MANIFEST_URL.to_string();
         ui.label(egui::RichText::new(t(dil, Message::ManifestUrl)).strong());
         ui.add(
-            egui::TextEdit::singleline(&mut self.ayar.manifest_url)
+            egui::TextEdit::singleline(&mut manifest_url)
                 .desired_width(420.0)
                 .interactive(false)
                 .hint_text("https://raw.githubusercontent.com/.../latest.json"),

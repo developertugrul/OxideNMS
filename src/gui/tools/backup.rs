@@ -1,7 +1,7 @@
 use crate::crypto;
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::Language;
 use eframe::egui;
 use ssh;
 use std::sync::{Arc, Mutex};
@@ -56,31 +56,30 @@ impl BackupTool {
         thread::spawn(move || {
             loop {
                 // Check if should stop
-                if let Ok(lock) = is_running.lock() {
-                    if !*lock {
-                        break;
-                    }
+                if let Ok(lock) = is_running.lock()
+                    && !*lock
+                {
+                    break;
                 }
 
                 // Fetch devices
                 let mut devices = Vec::new();
-                if let Ok(conn) = db::get_connection() {
-                    if let Ok(mut stmt) = conn.prepare(
+                if let Ok(conn) = db::get_connection()
+                    && let Ok(mut stmt) = conn.prepare(
                         "SELECT id, name, ip_address, username, encrypted_credentials FROM devices",
-                    ) {
-                        if let Ok(iter) = stmt.query_map([], |row| {
-                            Ok((
-                                row.get::<_, i32>(0)?,
-                                row.get::<_, String>(1)?,
-                                row.get::<_, String>(2)?,
-                                row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                                row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-                            ))
-                        }) {
-                            for dev in iter.flatten() {
-                                devices.push(dev);
-                            }
-                        }
+                    )
+                    && let Ok(iter) = stmt.query_map([], |row| {
+                        Ok((
+                            row.get::<_, i32>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                            row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                        ))
+                    })
+                {
+                    for dev in iter.flatten() {
+                        devices.push(dev);
                     }
                 }
 
@@ -168,10 +167,8 @@ impl ToolScreen for BackupTool {
             ui.label("Cihaz şifrelerini çözebilmek için Master Password girin:");
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
-                if ui.button("Kilidi Aç").clicked() {
-                    if !self.master_pass.is_empty() {
-                        self.unlocked = true;
-                    }
+                if ui.button("Kilidi Aç").clicked() && !self.master_pass.is_empty() {
+                    self.unlocked = true;
                 }
             });
             return None;

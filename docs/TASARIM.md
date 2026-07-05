@@ -97,7 +97,9 @@ arayüz hakkında hiçbir şey bilmez. Bu kuralı bozmayın.
   kararı `decide`'a devreder.
 - `decide(current, manifest)`: **saf** karar mantığı → `UpdateStatus`.
 - `VersionManifest`: `latest_version`, `minimum_version`, `download_url`, `notes`.
-- `UpdateStatus`: `UpToDate` | `Optional(manifest)` | `Mandatory(manifest)`.
+- `UpdateStatus`: `UpToDate` | `Mandatory(manifest)`. `Optional` geriye dönük
+  API uyumluluğu için tipte kalabilir ama OxideNMS politikası yeni sürümü
+  her zaman kilitler.
 - Detay için §6.
 
 ### `cli/` — Komut Satırı Arayüzü
@@ -108,7 +110,7 @@ arayüz hakkında hiçbir şey bilmez. Bu kuralı bozmayın.
 ### `gui/` — Masaüstü Arayüz (eframe/egui)
 - `CiscoApp`: tüm arayüz durumu (state). `eframe::App::update` her karede çizer.
 - Sol panel: araç listesi (`Tool` enum). Orta panel: seçili aracın ekranı.
-- Sürüm ekranları: bekleme (spinner), kilit (zorunlu), üst uyarı (isteğe bağlı),
+- Sürüm ekranları: bekleme (spinner), kilit (zorunlu),
   alt durum çubuğu (denetim başarısız).
 
 ### `i18n/` — Çoklu Dil (Uluslararasılaştırma)
@@ -125,10 +127,11 @@ arayüz hakkında hiçbir şey bilmez. Bu kuralı bozmayın.
   Azınlık dilleri için anadil kontrolü önerilir.
 
 ### `settings.rs` — Uygulama Ayarları
-- `AppSettings` (`manifest_url`, `tema`, `dil`) → `settings.toml` (OS config
+- `AppSettings` (`tema`, `dil`) → `settings.toml` (OS config
   klasörü, Windows'ta `%APPDATA%\cisco\`).
 - `load()` panik atmaz: dosya yoksa oluşturur, bozuksa varsayılana düşer.
-- `effective_manifest_url()`: `CISCO_MANIFEST_URL` ortam değişkeni > dosya > varsayılan.
+- `effective_manifest_url()`: kullanıcı ayarını ve ortam değişkenini okumadan
+  sabit GitHub manifest URL'ini döndürür.
 
 > Font: GUI, Türkçe karakterleri garanti göstermek için `assets/fonts/DejaVuSans.ttf`
 > fontunu gömer (`gui::fontlari_kur`, `include_bytes!`). Proportional ailesinde
@@ -167,7 +170,6 @@ Kullanıcı "192.168.1.10/24" yazar
 CiscoApp::new → arka planda thread: update::check(manifest_url, sürüm)
   → sonuç kanal (channel) ile UI'ye döner + request_repaint
     → Mandatory  : kilit ekranı (uygulama kullanılamaz)
-    → Optional   : üst uyarı + normal uygulama
     → UpToDate   : normal uygulama
     → hata       : normal uygulama + alt durum çubuğu (fail-open)
 ```
@@ -195,8 +197,8 @@ değil — bu ileride bir iyileştirme.)
 
 | Koşul | Sonuç |
 |-------|-------|
-| sürüm ≥ `minimum_version` ve = `latest_version` | UpToDate (normal) |
-| sürüm ≥ `minimum_version` ama < `latest_version` | Optional (uyarı + normal) |
+| sürüm = `latest_version` ve ≥ `minimum_version` | UpToDate (normal) |
+| sürüm < `latest_version` | **Mandatory (kilit)** |
 | sürüm < `minimum_version` | **Mandatory (kilit)** |
 | denetim başarısız (offline) | fail-open (normal + not) |
 
@@ -204,11 +206,10 @@ değil — bu ileride bir iyileştirme.)
 1. Yeni `.exe` yayınla.
 2. Cargo.toml `version`'ı artır.
 3. Hosted `latest.json`'da `latest_version`'ı güncelle.
-4. Zorunlu yapmak istiyorsan `minimum_version`'ı da yükselt → eski sürümler kilitlenir.
+4. `latest_version` yükselince eski sürümler otomatik kilitlenir.
 
-**Yapılandırma:** URL `update::DEFAULT_MANIFEST_URL` (placeholder) veya
-`CISCO_MANIFEST_URL` ortam değişkeni. Yerel test: `assets/latest.example.json`
-+ `python -m http.server`.
+**Yapılandırma:** URL `update::DEFAULT_MANIFEST_URL` sabitidir. GitHub'dan
+indirilen build'lerde kullanıcı ayarı veya ortam değişkeniyle değiştirilemez.
 
 **Politika notu:** `Failed` (offline) durumunda fail-open. Daha katı istenirse
 `gui::UpdateState::Failed` dalı kilitlemeye çevrilebilir — ama offline
@@ -263,8 +264,8 @@ Bunlar henüz KODLANMADI; ileride buraya göre inşa edilecek.
 - **Saklama (`storage/` servis):** config sürümleri, diff geçmişi, alarmlar.
 - **Config domaini (`network/config.rs`, `diff.rs`):** Cisco config'i yapısal
   modele çevirir, iki sürümü karşılaştırır, compliance kurallarını uygular.
-- **Ayarlar:** `config.toml` benzeri kullanıcı ayarları (manifest URL, tema,
-  cihaz listesi yolu) — sabit yerine yapılandırılabilir.
+- **Ayarlar:** `config.toml` benzeri kullanıcı ayarları (tema, cihaz listesi
+  yolu). Manifest URL'i güvenlik politikası gereği yapılandırılabilir değildir.
 
 ---
 
@@ -296,8 +297,7 @@ Bunlar henüz KODLANMADI; ileride buraya göre inşa edilecek.
 - `main.rs`'e argüman varsa CLI, yoksa GUI seçimi eklemek.
 - ~~GUI'ye Türkçe karakter için özel font gömmek.~~ ✅ Yapıldı (DejaVu Sans,
   `assets/fonts/`, `gui::fontlari_kur`). Tüm GUI metinleri düzgün Türkçe.
-- ~~GUI içinden ayarları (tema, manifest URL) düzenleyebilen bir "Ayarlar" ekranı.~~ ✅ Yapıldı
+- ~~GUI içinden ayarları (tema, dil) düzenleyebilen bir "Ayarlar" ekranı.~~ ✅ Yapıldı
 - Zorunlu güncellemede indirme dosyasının imza/hash doğrulaması (güvenlik).
 - İleride: self-update (self_update crate) ile otomatik indirme.
 ```
-

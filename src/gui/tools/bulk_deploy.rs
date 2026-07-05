@@ -9,7 +9,6 @@ use std::thread;
 
 #[derive(Clone)]
 struct DeviceData {
-    id: i32,
     name: String,
     ip: String,
     user: String,
@@ -45,15 +44,14 @@ impl BulkDeployTool {
 
     fn fetch_devices(&mut self) {
         let mut list = Vec::new();
-        if let Ok(conn) = db::get_connection() {
-            if let Ok(mut stmt) = conn.prepare("SELECT id, name, ip_address, username, encrypted_credentials FROM devices ORDER BY name") {
+        if let Ok(conn) = db::get_connection()
+            && let Ok(mut stmt) = conn.prepare("SELECT name, ip_address, username, encrypted_credentials FROM devices ORDER BY name") {
                 let dev_iter = stmt.query_map([], |row| {
                     Ok(DeviceData {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                        ip: row.get(2)?,
-                        user: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                        enc_cred: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                        name: row.get(0)?,
+                        ip: row.get(1)?,
+                        user: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                        enc_cred: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                         selected: false,
                         status: None,
                     })
@@ -64,7 +62,6 @@ impl BulkDeployTool {
                     }
                 }
             }
-        }
         if let Ok(mut lock) = self.devices.lock() {
             *lock = list;
         }
@@ -128,16 +125,16 @@ impl BulkDeployTool {
                                     Err(e) => format!("Exec Err: {:?}", e),
                                 }
                             }
-                            Err(e) => "SSH Bağlantı Hatası".to_string(),
+                            Err(_e) => "SSH Bağlantı Hatası".to_string(),
                         }
                     }
                     Err(_) => "Şifre Çözme Hatası".to_string(),
                 };
 
-                if let Ok(mut lock) = devs_clone.lock() {
-                    if let Some(d) = lock.get_mut(i) {
-                        d.status = Some(result);
-                    }
+                if let Ok(mut lock) = devs_clone.lock()
+                    && let Some(d) = lock.get_mut(i)
+                {
+                    d.status = Some(result);
                 }
                 bg_ctx.request_repaint();
             });
@@ -166,11 +163,9 @@ impl ToolScreen for BulkDeployTool {
             ui.label(t(dil, Message::EnterMasterPassword));
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
-                if ui.button(t(dil, Message::Unlock)).clicked() {
-                    if !self.master_pass.is_empty() {
-                        self.unlocked = true;
-                        self.fetch_devices();
-                    }
+                if ui.button(t(dil, Message::Unlock)).clicked() && !self.master_pass.is_empty() {
+                    self.unlocked = true;
+                    self.fetch_devices();
                 }
             });
             return None;

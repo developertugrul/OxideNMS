@@ -163,7 +163,7 @@ impl CiscoApp {
         let bg_ctx = ctx.clone();
         std::thread::spawn(move || {
             let result =
-                update::check(&manifest_url, env!("CARGO_PKG_VERSION")).map_err(|e| e.to_string());
+                update::check(manifest_url, env!("CARGO_PKG_VERSION")).map_err(|e| e.to_string());
             let _ = tx.send(result);
             bg_ctx.request_repaint();
         });
@@ -195,14 +195,14 @@ impl CiscoApp {
 
     /// Arka plandan sonuç geldiyse durumu günceller.
     fn surum_sonucunu_al(&mut self) {
-        if let Some(rx) = &self.update_rx {
-            if let Ok(result) = rx.try_recv() {
-                self.update_state = match result {
-                    Ok(status) => UpdateState::Ready(status),
-                    Err(mesaj) => UpdateState::Failed(mesaj),
-                };
-                self.update_rx = None;
-            }
+        if let Some(rx) = &self.update_rx
+            && let Ok(result) = rx.try_recv()
+        {
+            self.update_state = match result {
+                Ok(status) => UpdateState::Ready(status),
+                Err(mesaj) => UpdateState::Failed(mesaj),
+            };
+            self.update_rx = None;
         }
     }
 }
@@ -366,7 +366,7 @@ impl CiscoApp {
                         ui.end_row();
                         ui.label(egui::RichText::new(t(dil, Message::RequiredVersion)).weak());
                         ui.label(
-                            egui::RichText::new(&manifest.minimum_version)
+                            egui::RichText::new(&manifest.latest_version)
                                 .monospace()
                                 .strong(),
                         );

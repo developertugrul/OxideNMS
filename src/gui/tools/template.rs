@@ -1,7 +1,7 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::Language;
 use eframe::egui;
-use minijinja::{Environment, context};
+use minijinja::Environment;
 
 pub struct TemplateTool {
     template_name: String,
@@ -59,8 +59,8 @@ impl TemplateTool {
         };
 
         // Değişkenleri dinamik olarak context'e ekle
-        let mut ctx = minijinja::Value::from(std::collections::BTreeMap::<String, String>::new());
-        for (k, v) in &self.vars {
+        let _ctx = minijinja::Value::from(std::collections::BTreeMap::<String, String>::new());
+        for (_k, _v) in &self.vars {
             // Basit bir şekilde manuel JSON/Map oluşturuyoruz
         }
 

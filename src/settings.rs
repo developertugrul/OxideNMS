@@ -1,8 +1,10 @@
 //! Uygulama ayarlari — `settings.toml`.
 //!
-//! Sabit degerleri (manifest URL, tema) koddan cikarip kullanicinin
-//! duzenleyebilecegi bir dosyaya aliyoruz. Dosya, OS'un standart config
-//! klasorunde durur (Windows: %APPDATA%\cisco\settings.toml).
+//! Kullanici tercihlerini OS'un standart config klasorunde tutar
+//! (Windows: %APPDATA%\cisco\settings.toml).
+//!
+//! Update manifest URL'i bilerek burada saklanmaz. Kullanici ayari veya ortam
+//! degiskeni ile degistirilemeyen sabit release politikasinin parcasidir.
 //!
 //! Tasarim: yukleme ASLA panik atmaz. Dosya yoksa varsayilan olusturulup
 //! diske yazilir; bozuksa varsayilana dusulur ve uyari basilir.
@@ -12,19 +14,12 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::i18n::Language;
-use crate::update::DEFAULT_MANIFEST_URL;
-
 /// Uygulama arayuz temasi.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Theme {
+    #[default]
     Koyu,
     Acik,
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Theme::Koyu
-    }
 }
 
 /// Kullanicinin duzenleyebilecegi tum uygulama ayarlari.
@@ -34,8 +29,6 @@ impl Default for Theme {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppSettings {
-    /// Surum kontrolu icin manifest adresi.
-    pub manifest_url: String,
     /// Arayuz temasi.
     pub tema: Theme,
     /// Arayuz dili.
@@ -45,7 +38,6 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            manifest_url: DEFAULT_MANIFEST_URL.to_string(),
             tema: Theme::Koyu,
             dil: Language::default(),
         }
@@ -61,6 +53,7 @@ impl AppSettings {
     /// Ayarlari diskten yukler.
     /// - Dosya yoksa: varsayilani olusturup diske yazar.
     /// - Dosya bozuksa: varsayilana duser (uyari basar).
+    ///
     /// Her durumda gecerli bir `AppSettings` doner (panik yok).
     pub fn load() -> Self {
         let Some(yol) = Self::dosya_yolu() else {
@@ -94,15 +87,13 @@ impl AppSettings {
         if let Some(ust_klasor) = yol.parent() {
             std::fs::create_dir_all(ust_klasor)?;
         }
-        let icerik = toml::to_string_pretty(self)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let icerik = toml::to_string_pretty(self).map_err(std::io::Error::other)?;
         std::fs::write(&yol, icerik)
     }
 
-    /// Kullanilacak manifest URL'i: `CISCO_MANIFEST_URL` ortam degiskeni varsa
-    /// onu, yoksa ayar dosyasindakini dondurur. (Ortam degiskeni test icin.)
-    pub fn effective_manifest_url(&self) -> String {
-        std::env::var("CISCO_MANIFEST_URL").unwrap_or_else(|_| self.manifest_url.clone())
+    /// Kullanilacak manifest URL'i sabittir ve kullanici tarafindan degistirilemez.
+    pub fn effective_manifest_url(&self) -> &'static str {
+        crate::update::DEFAULT_MANIFEST_URL
     }
 }
 
@@ -115,7 +106,6 @@ mod tests {
         let a = AppSettings::default();
         let text = toml::to_string_pretty(&a).unwrap();
         let b: AppSettings = toml::from_str(&text).unwrap();
-        assert_eq!(a.manifest_url, b.manifest_url);
         assert_eq!(a.tema, b.tema);
     }
 
@@ -124,6 +114,24 @@ mod tests {
         // Bos toml -> tum alanlar varsayilan olmali.
         let b: AppSettings = toml::from_str("").unwrap();
         assert_eq!(b.tema, Theme::Koyu);
-        assert_eq!(b.manifest_url, DEFAULT_MANIFEST_URL);
+        assert_eq!(
+            b.effective_manifest_url(),
+            crate::update::DEFAULT_MANIFEST_URL
+        );
+    }
+
+    #[test]
+    fn manifest_url_kullanici_ayarindan_okunmaz() {
+        let b: AppSettings = toml::from_str(
+            r#"
+manifest_url = "https://attacker.invalid/latest.json"
+tema = "Acik"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            b.effective_manifest_url(),
+            crate::update::DEFAULT_MANIFEST_URL
+        );
     }
 }

@@ -53,14 +53,14 @@ impl ToolScreen for SshTool {
         ui.add_space(10.0);
 
         // Check if there is a message from the background thread
-        if let Some(rx) = &self.rx {
-            if let Ok(result) = rx.try_recv() {
-                match result {
-                    Ok(config) => self.state = SshState::Done(config),
-                    Err(e) => self.state = SshState::Error(e),
-                }
-                self.rx = None;
+        if let Some(rx) = &self.rx
+            && let Ok(result) = rx.try_recv()
+        {
+            match result {
+                Ok(config) => self.state = SshState::Done(config),
+                Err(e) => self.state = SshState::Error(e),
             }
+            self.rx = None;
         }
 
         ui.horizontal(|ui| {
@@ -141,21 +141,17 @@ impl ToolScreen for SshTool {
                     if ui.button(t(dil, Message::DiffSaveToDb)).clicked() {
                         match db::get_connection() {
                             Ok(conn) => {
-                                let device_id = match db::devices::get_or_create_device(
-                                    &conn, &self.ip, &self.ip,
-                                ) {
-                                    Ok(id) => id,
-                                    Err(_) => 1, // Fallback
-                                };
+                                let device_id =
+                                    db::devices::get_or_create_device(&conn, &self.ip, &self.ip)
+                                        .unwrap_or(1);
 
                                 // Kaydetmeden önce önceki konfigürasyonu alalım
                                 let mut prev_config = String::new();
                                 if let Ok(history) =
                                     db::devices::get_config_history(&conn, device_id)
+                                    && let Some(last) = history.first()
                                 {
-                                    if let Some(last) = history.first() {
-                                        prev_config = last.config_text.clone();
-                                    }
+                                    prev_config = last.config_text.clone();
                                 }
 
                                 match db::devices::save_config(&conn, device_id, config) {

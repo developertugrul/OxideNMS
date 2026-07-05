@@ -78,14 +78,12 @@ impl ToolScreen for DiffTool {
             if ui.button(t(dil, Message::DiffSaveToDb)).clicked() {
                 match db::get_connection() {
                     Ok(conn) => {
-                        let device_id = match db::devices::get_or_create_device(
+                        let device_id = db::devices::get_or_create_device(
                             &conn,
                             &self.device_name,
                             "Bilinmiyor",
-                        ) {
-                            Ok(id) => id,
-                            Err(_) => 1,
-                        };
+                        )
+                        .unwrap_or(1);
                         match db::devices::save_config(&conn, device_id, &self.new_config) {
                             Ok(_) => self.db_mesaj = Some("Veritabanına Saved!".to_owned()),
                             Err(e) => self.db_mesaj = Some(format!("Kayıt Hatası: {}", e)),

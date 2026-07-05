@@ -1,6 +1,6 @@
 use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::Language;
 use eframe::egui;
 use snmp::{SyncSession, Value};
 use std::sync::{Arc, Mutex};
@@ -40,32 +40,29 @@ impl SnmpMapTool {
 
     fn load_devices(&mut self) {
         let mut list = Vec::new();
-        if let Ok(conn) = db::get_connection() {
-            if let Ok(mut stmt) = conn.prepare("SELECT id, name, ip_address FROM devices") {
-                if let Ok(iter) = stmt.query_map([], |row| {
-                    Ok(Node {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                        ip: row.get(2)?,
-                        pos: egui::pos2(100.0, 100.0), // Will spread them out later
-                        is_up: false,
-                        sys_descr: String::new(),
-                    })
-                }) {
-                    let mut x = 100.0;
-                    let mut y = 100.0;
-                    for dev_res in iter {
-                        if let Ok(mut dev) = dev_res {
-                            dev.pos = egui::pos2(x, y);
-                            x += 150.0;
-                            if x > 600.0 {
-                                x = 100.0;
-                                y += 150.0;
-                            }
-                            list.push(dev);
-                        }
-                    }
+        if let Ok(conn) = db::get_connection()
+            && let Ok(mut stmt) = conn.prepare("SELECT id, name, ip_address FROM devices")
+            && let Ok(iter) = stmt.query_map([], |row| {
+                Ok(Node {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    ip: row.get(2)?,
+                    pos: egui::pos2(100.0, 100.0), // Will spread them out later
+                    is_up: false,
+                    sys_descr: String::new(),
+                })
+            })
+        {
+            let mut x = 100.0;
+            let mut y = 100.0;
+            for mut dev in iter.flatten() {
+                dev.pos = egui::pos2(x, y);
+                x += 150.0;
+                if x > 600.0 {
+                    x = 100.0;
+                    y += 150.0;
                 }
+                list.push(dev);
             }
         }
         if let Ok(mut l) = self.nodes.lock() {
@@ -86,10 +83,10 @@ impl SnmpMapTool {
 
         thread::spawn(move || {
             loop {
-                if let Ok(lock) = is_polling.lock() {
-                    if !*lock {
-                        break;
-                    }
+                if let Ok(lock) = is_polling.lock()
+                    && !*lock
+                {
+                    break;
                 }
 
                 let len = {
@@ -111,14 +108,13 @@ impl SnmpMapTool {
 
                     if let Ok(mut sess) =
                         SyncSession::new(addr, b"public", Some(Duration::from_secs(2)), 0)
+                        && let Ok(mut response) = sess.get(sys_descr_oid)
                     {
-                        if let Ok(mut response) = sess.get(sys_descr_oid) {
-                            is_up = true;
-                            if let Some((_oid, Value::OctetString(sys_descr))) =
-                                response.varbinds.next()
-                            {
-                                descr = String::from_utf8_lossy(sys_descr).into_owned();
-                            }
+                        is_up = true;
+                        if let Some((_oid, Value::OctetString(sys_descr))) =
+                            response.varbinds.next()
+                        {
+                            descr = String::from_utf8_lossy(sys_descr).into_owned();
                         }
                     }
 
@@ -190,25 +186,25 @@ impl ToolScreen for SnmpMapTool {
 
         // Handle dragging
         if let Some(id) = self.dragging_node {
-            if response.dragged() {
-                if let Some(node) = nodes.iter_mut().find(|n| n.id == id) {
-                    node.pos += response.drag_delta();
-                }
+            if response.dragged()
+                && let Some(node) = nodes.iter_mut().find(|n| n.id == id)
+            {
+                node.pos += response.drag_delta();
             }
             if response.drag_stopped() {
                 self.dragging_node = None;
             }
-        } else if response.drag_started() {
-            if let Some(pos) = response.interact_pointer_pos() {
-                for node in nodes.iter() {
-                    let node_rect = egui::Rect::from_center_size(
-                        rect.min + node.pos.to_vec2(),
-                        egui::vec2(100.0, 60.0),
-                    );
-                    if node_rect.contains(pos) {
-                        self.dragging_node = Some(node.id);
-                        break;
-                    }
+        } else if response.drag_started()
+            && let Some(pos) = response.interact_pointer_pos()
+        {
+            for node in nodes.iter() {
+                let node_rect = egui::Rect::from_center_size(
+                    rect.min + node.pos.to_vec2(),
+                    egui::vec2(100.0, 60.0),
+                );
+                if node_rect.contains(pos) {
+                    self.dragging_node = Some(node.id);
+                    break;
                 }
             }
         }

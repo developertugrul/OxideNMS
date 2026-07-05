@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 pub mod langs;
 
 /// Desteklenen langs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Language {
+    #[default]
     Turkish,
     English,
     German,
@@ -34,12 +35,6 @@ pub enum Language {
     Hungarian,
     Bulgarian,
     Portuguese,
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language::Turkish
-    }
 }
 
 impl Language {

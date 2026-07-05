@@ -11,18 +11,10 @@ pub struct Interface {
     shutdown: bool,
 }
 
+#[derive(Default)]
 pub struct TopologyTool {
     config_input: String,
     interfaces: Vec<Interface>,
-}
-
-impl Default for TopologyTool {
-    fn default() -> Self {
-        Self {
-            config_input: String::new(),
-            interfaces: Vec::new(),
-        }
-    }
 }
 
 impl ToolScreen for TopologyTool {

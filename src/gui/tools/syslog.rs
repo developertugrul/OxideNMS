@@ -1,5 +1,5 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::Language;
 use chrono::{DateTime, Local};
 use eframe::egui;
 use std::net::UdpSocket;
@@ -79,25 +79,25 @@ impl SyslogTool {
                         let mut severity = "INFO".to_string();
                         let mut msg_body = raw_msg.clone();
 
-                        if raw_msg.starts_with('<') {
-                            if let Some(end_idx) = raw_msg.find('>') {
-                                let pri_val_str = &raw_msg[1..end_idx];
-                                if let Ok(pri_val) = pri_val_str.parse::<u8>() {
-                                    let sev = pri_val & 0x07;
-                                    severity = match sev {
-                                        0 => "EMERG".to_string(),
-                                        1 => "ALERT".to_string(),
-                                        2 => "CRIT".to_string(),
-                                        3 => "ERR".to_string(),
-                                        4 => "WARNING".to_string(),
-                                        5 => "NOTICE".to_string(),
-                                        6 => "INFO".to_string(),
-                                        7 => "DEBUG".to_string(),
-                                        _ => "UNKNOWN".to_string(),
-                                    };
-                                }
-                                msg_body = raw_msg[end_idx + 1..].trim().to_string();
+                        if raw_msg.starts_with('<')
+                            && let Some(end_idx) = raw_msg.find('>')
+                        {
+                            let pri_val_str = &raw_msg[1..end_idx];
+                            if let Ok(pri_val) = pri_val_str.parse::<u8>() {
+                                let sev = pri_val & 0x07;
+                                severity = match sev {
+                                    0 => "EMERG".to_string(),
+                                    1 => "ALERT".to_string(),
+                                    2 => "CRIT".to_string(),
+                                    3 => "ERR".to_string(),
+                                    4 => "WARNING".to_string(),
+                                    5 => "NOTICE".to_string(),
+                                    6 => "INFO".to_string(),
+                                    7 => "DEBUG".to_string(),
+                                    _ => "UNKNOWN".to_string(),
+                                };
                             }
+                            msg_body = raw_msg[end_idx + 1..].trim().to_string();
                         }
 
                         let log_entry = SyslogMsg {
@@ -177,10 +177,10 @@ impl ToolScreen for SyslogTool {
             }));
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Logları Temizle").clicked() {
-                    if let Ok(mut lock) = self.messages.lock() {
-                        lock.clear();
-                    }
+                if ui.button("Logları Temizle").clicked()
+                    && let Ok(mut lock) = self.messages.lock()
+                {
+                    lock.clear();
                 }
                 ui.checkbox(&mut self.auto_scroll, "Oto-Kaydır");
             });

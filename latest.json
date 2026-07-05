@@ -2,5 +2,5 @@
   "latest_version": "1.0.2",
   "minimum_version": "1.0.2",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.2 release manifest example. Any build older than latest_version is locked until updated."
+  "notes": "OxideNMS 1.0.2 is the current mandatory baseline."
 }

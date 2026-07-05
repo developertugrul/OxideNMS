@@ -21,7 +21,7 @@ için hızlı ve yerel çalışan profesyonel bir araç sunmaktır.
 - Dahili UDP syslog dinleyici.
 - VLAN, subnet, template, firmware ve yardımcı araç ekranları.
 - Gömülü fontlarla çoklu dil UI altyapısı.
-- Zorunlu ve opsiyonel güncelleme manifest desteği.
+- Zorunlu güncelleme manifest desteği.
 
 Bazı ekranlar hâlâ temel seviyededir ve yol haritasında izlenmektedir.
 OxideNMS profesyonel NMS/NCCCM kullanımına doğru olgunlaştırılır.
@@ -69,8 +69,9 @@ Workflow Windows, Linux ve macOS binary üretir. Artifact isimleri
 
 ## Güncelleme Manifesti
 
-OxideNMS, yeni sürümün opsiyonel mi zorunlu mu olduğunu belirlemek için JSON
-manifest okuyabilir. Örnek dosya: [assets/latest.example.json](assets/latest.example.json).
+OxideNMS sabit bir JSON manifest okur. `latest_version` çalışan sürümden
+yeniyse uygulama güncellenene kadar kilitlenir. Manifest URL'i kullanıcı
+tarafından değiştirilemez. Örnek dosya: [assets/latest.example.json](assets/latest.example.json).
 
 ```json
 {
@@ -81,8 +82,8 @@ manifest okuyabilir. Örnek dosya: [assets/latest.example.json](assets/latest.ex
 }
 ```
 
-`minimum_version` sadece eski istemcilerin engellenmesi gerektiğinde
-yükseltilmelidir.
+`latest_version` zorunlu güncelleme kilidini belirler. `minimum_version`
+uyumluluk için manifestte kalır ve zorunlu taban sürümle aynı tutulmalıdır.
 
 ## Dokümantasyon
 

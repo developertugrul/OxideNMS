@@ -21,7 +21,7 @@ and controlled operational workflows.
 - Built-in syslog UDP listener.
 - VLAN, subnet, template, firmware, and utility screens.
 - Multi-language UI infrastructure with embedded fonts.
-- Mandatory and optional update manifest support.
+- Mandatory update manifest support.
 
 Some screens are still foundation-level and are tracked in the roadmap.
 OxideNMS is being hardened toward professional NMS/NCCCM usage.
@@ -69,8 +69,9 @@ assets named with the `OxideNMS-{platform}-{arch}` convention.
 
 ## Update Manifest
 
-OxideNMS can check a JSON manifest to decide whether a newer release is
-optional or mandatory. See [assets/latest.example.json](assets/latest.example.json).
+OxideNMS checks a fixed JSON manifest. If `latest_version` is newer than the
+running build, the application is locked until the user updates. The manifest
+URL is not user-configurable. See [assets/latest.example.json](assets/latest.example.json).
 
 Example:
 
@@ -83,7 +84,8 @@ Example:
 }
 ```
 
-`minimum_version` should only be raised when older clients must be blocked.
+`latest_version` controls the mandatory update lock. `minimum_version` remains
+in the manifest for compatibility and should match the mandatory baseline.
 
 ## Documentation
 

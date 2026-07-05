@@ -25,22 +25,21 @@ impl DeviceManagerTool {
 
     fn fetch_devices(&self) -> Vec<(i32, String, String, String)> {
         let mut list = Vec::new();
-        if let Ok(conn) = db::get_connection() {
-            if let Ok(mut stmt) =
+        if let Ok(conn) = db::get_connection()
+            && let Ok(mut stmt) =
                 conn.prepare("SELECT id, name, ip_address, username FROM devices ORDER BY id DESC")
-            {
-                let dev_iter = stmt.query_map([], |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                    ))
-                });
-                if let Ok(iter) = dev_iter {
-                    for dev in iter.flatten() {
-                        list.push(dev);
-                    }
+        {
+            let dev_iter = stmt.query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                ))
+            });
+            if let Ok(iter) = dev_iter {
+                for dev in iter.flatten() {
+                    list.push(dev);
                 }
             }
         }
@@ -81,10 +80,8 @@ impl ToolScreen for DeviceManagerTool {
             ui.label(t(dil, Message::EnterMasterPassword));
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
-                if ui.button(t(dil, Message::Unlock)).clicked() {
-                    if !self.master_pass.is_empty() {
-                        self.unlocked = true;
-                    }
+                if ui.button(t(dil, Message::Unlock)).clicked() && !self.master_pass.is_empty() {
+                    self.unlocked = true;
                 }
             });
             return None;
@@ -113,8 +110,8 @@ impl ToolScreen for DeviceManagerTool {
                 ui.add(egui::TextEdit::singleline(&mut self.new_pass).password(true));
             });
 
-            if ui.button(t(dil, Message::SaveDevice)).clicked() {
-                if !self.new_name.is_empty() && !self.new_ip.is_empty() {
+            if ui.button(t(dil, Message::SaveDevice)).clicked()
+                && !self.new_name.is_empty() && !self.new_ip.is_empty() {
                     let enc_pass = crypto::encrypt_credential(&self.new_pass, &self.master_pass)
                         .unwrap_or_default();
 
@@ -130,7 +127,6 @@ impl ToolScreen for DeviceManagerTool {
                         self.new_pass.clear();
                     }
                 }
-            }
         });
 
         if !self.status_msg.is_empty() {

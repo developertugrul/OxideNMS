@@ -229,18 +229,17 @@ pub fn audit(config: &str) -> Vec<Finding> {
         }
 
         // Zayıf/varsayılan parola: parola satırındaki son değeri kontrol et.
-        if lc.contains("password") || lc.contains("secret") {
-            if let Some(son) = l.split_whitespace().next_back() {
-                if ZAYIF_PAROLALAR.contains(&son.to_lowercase().as_str()) {
-                    ekle(
-                        &mut bulgular,
-                        Level::Critical,
-                        FindingCode::WeakPassword,
-                        satir_no,
-                        l,
-                    );
-                }
-            }
+        if (lc.contains("password") || lc.contains("secret"))
+            && let Some(son) = l.split_whitespace().next_back()
+            && ZAYIF_PAROLALAR.contains(&son.to_lowercase().as_str())
+        {
+            ekle(
+                &mut bulgular,
+                Level::Critical,
+                FindingCode::WeakPassword,
+                satir_no,
+                l,
+            );
         }
     }
 
@@ -249,15 +248,13 @@ pub fn audit(config: &str) -> Vec<Finding> {
 
     // --- Tüm-config kontrolleri ---
 
-    if !enable_secret {
-        if let Some((no, txt)) = enable_password {
-            bulgular.push(Finding {
-                level: Level::Warning,
-                code: FindingCode::NoEnableSecret,
-                line: Some(no),
-                detail: Some(txt),
-            });
-        }
+    if !enable_secret && let Some((no, txt)) = enable_password {
+        bulgular.push(Finding {
+            level: Level::Warning,
+            code: FindingCode::NoEnableSecret,
+            line: Some(no),
+            detail: Some(txt),
+        });
     }
 
     if !parola_sifreleme {

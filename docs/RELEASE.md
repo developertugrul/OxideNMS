@@ -36,9 +36,10 @@ Artifacts use this convention:
 
 ## Update Manifest Policy
 
-`latest_version` advertises the newest release.
+`latest_version` advertises the newest release and locks older applications.
 
-`minimum_version` blocks older clients only when a security, compatibility, or
-data safety issue requires a mandatory upgrade.
+`minimum_version` remains in the manifest for compatibility and should normally
+match the mandatory baseline.
 
 `download_url` should point to the latest GitHub Release or a specific asset.
+The manifest URL is compiled into the application and is not user-configurable.

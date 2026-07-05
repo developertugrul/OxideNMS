@@ -8,6 +8,7 @@ cybersecurity operations desktop tool for CCNA, CCNP, and CCIE-level users.
 - Clean project metadata, README files, release workflow, and update manifest.
 - Document release, contribution, security, and roadmap practices.
 - Keep GitHub Release artifacts predictable across Windows, Linux, and macOS.
+- Enforce fixed-manifest mandatory update behavior for GitHub-distributed builds.
 
 ## Phase 2: Reliability and Security Foundation
 

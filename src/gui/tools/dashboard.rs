@@ -1,5 +1,5 @@
 use crate::gui::tools::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::Language;
 use eframe::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 

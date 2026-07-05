@@ -26,14 +26,38 @@ pub enum NetworkError {
 #[derive(Debug, Error)]
 pub enum UpdateError {
     #[error("Surum bilgisine ulasilamadi (ag hatasi): {0}")]
-    Http(#[from] ureq::Error),
+    Http(String),
 
     #[error("Surum bilgisi okunamadi: {0}")]
-    Io(#[from] std::io::Error),
+    Io(String),
 
     #[error("Surum bilgisi cozumlenemedi (bozuk JSON): {0}")]
-    Parse(#[from] serde_json::Error),
+    Parse(String),
 
     #[error("Gecersiz surum numarasi: {0}")]
-    Version(#[from] semver::Error),
+    Version(String),
+}
+
+impl From<ureq::Error> for UpdateError {
+    fn from(value: ureq::Error) -> Self {
+        Self::Http(value.to_string())
+    }
+}
+
+impl From<std::io::Error> for UpdateError {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value.to_string())
+    }
+}
+
+impl From<serde_json::Error> for UpdateError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Parse(value.to_string())
+    }
+}
+
+impl From<semver::Error> for UpdateError {
+    fn from(value: semver::Error) -> Self {
+        Self::Version(value.to_string())
+    }
 }

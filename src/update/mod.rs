@@ -4,8 +4,8 @@
 //! indirir, uygulamanin kendi surumuyle karsilastirir ve "ne yapilmali"
 //! bilgisini dondurur. Ekrana bir sey cizmez — o is GUI'nin.
 //!
-//! Zorunlu guncellemenin sirri: uygulamanin surumu manifest'teki
-//! `minimum_version`'dan kucukse, kullanici uygulamayi kullanamaz.
+//! OxideNMS politikasi katidir: uygulamanin surumu manifest'teki
+//! `latest_version`'dan kucukse, kullanici uygulamayi guncellemeden kullanamaz.
 
 use semver::Version;
 use serde::Deserialize;
@@ -14,9 +14,10 @@ use crate::error::UpdateError;
 
 /// Manifest degeri gelmezse kullanilacak varsayilan URL.
 ///
-/// NOT: Burayi kendi yayin adresinle degistir. Test icin `CISCO_MANIFEST_URL`
-/// ortam degiskeni bunu gecersiz kilar (asagidaki `manifest_url`'e bak).
-pub const DEFAULT_MANIFEST_URL: &str = "https://raw.githubusercontent.com/developertugrul/OxideNMS/main/latest.json";
+/// Kullanici ayari veya ortam degiskeni ile degistirilmez. GitHub'dan indirilen
+/// build'lerde update bypass edilmesin diye bu adres sadece kod/release ile degisir.
+pub const DEFAULT_MANIFEST_URL: &str =
+    "https://raw.githubusercontent.com/developertugrul/OxideNMS/main/latest.json";
 
 /// Sunucudaki surum bilgisi dosyasinin (JSON) yapisi.
 ///
@@ -47,9 +48,10 @@ pub struct VersionManifest {
 pub enum UpdateStatus {
     /// Guncel; normal calis.
     UpToDate,
-    /// Daha yeni surum var ama zorunlu degil (kullanici devam edebilir).
+    /// Daha yeni surum var ama zorunlu degil. OxideNMS'in mevcut politikasinda
+    /// uretilmez; geriye donuk API uyumlulugu icin tutulur.
     Optional(VersionManifest),
-    /// Surum cok eski; kullanici GUNCELLEMEDEN uygulamayi kullanamaz.
+    /// Yeni surum var veya surum cok eski; kullanici GUNCELLEMEDEN uygulamayi kullanamaz.
     Mandatory(VersionManifest),
 }
 
@@ -80,10 +82,8 @@ pub fn decide(current: &str, manifest: VersionManifest) -> Result<UpdateStatus, 
     let minimum = Version::parse(&manifest.minimum_version)?;
     let latest = Version::parse(&manifest.latest_version)?;
 
-    let durum = if current < minimum {
+    let durum = if current < latest || current < minimum {
         UpdateStatus::Mandatory(manifest)
-    } else if current < latest {
-        UpdateStatus::Optional(manifest)
     } else {
         UpdateStatus::UpToDate
     };
@@ -113,10 +113,10 @@ mod tests {
     }
 
     #[test]
-    fn yeni_var_ama_zorunlu_degil() {
-        // Uygulama 1.0.0, minimum 1.0.0, en son 1.2.0 -> ISTEGE BAGLI.
+    fn yeni_surum_zorunlu_guncelleme() {
+        // Uygulama 1.0.0, minimum 1.0.0, en son 1.2.0 -> ZORUNLU.
         let result = decide("1.0.0", manifest("1.0.0", "1.2.0")).unwrap();
-        assert!(matches!(result, UpdateStatus::Optional(_)));
+        assert!(matches!(result, UpdateStatus::Mandatory(_)));
     }
 
     #[test]
