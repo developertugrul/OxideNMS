@@ -35,7 +35,8 @@ pub fn run() -> eframe::Result {
             // Tam ekran genişliği: pencere maksimize açılır.
             .with_maximized(true)
             // Sabit: kullanıcı boyutlandıramaz.
-            .with_resizable(false)
+            .with_resizable(true)
+            .with_min_inner_size([1000.0, 650.0])
             // Maksimize desteklenmezse kullanılacak yedek boyut.
             .with_inner_size([1100.0, 700.0])
             .with_title(t(settings.dil, Message::AppName)),
@@ -43,7 +44,7 @@ pub fn run() -> eframe::Result {
     };
 
     eframe::run_native(
-        "Cisco Ağ Araçları",
+        "OxideNMS",
         options,
         Box::new(move |cc| Ok(Box::new(CiscoApp::new(&cc.egui_ctx, settings)))),
     )
@@ -170,20 +171,20 @@ impl CiscoApp {
 
         Self {
             tools: vec![
-                Box::new(SubnetTool::default()),
-                Box::new(VlanTool::default()),
-                Box::new(TopologyTool::default()),
-                Box::new(SecurityTool::default()),
+                Box::new(DashboardTool),
                 Box::new(DeviceManagerTool::default()),
-                Box::new(BulkDeployTool::default()),
+                Box::new(SecurityTool::default()),
                 Box::new(BackupTool::default()),
-                Box::new(SnmpMapTool::default()),
-                Box::new(SyslogTool::default()),
-                Box::new(TemplateTool::default()),
-                Box::new(DashboardTool::default()),
-                Box::new(FirmwareTool::default()),
+                Box::new(BulkDeployTool::default()),
                 Box::new(DiffTool::default()),
                 Box::new(SshTool::default()),
+                Box::new(SyslogTool::default()),
+                Box::new(SnmpMapTool::default()),
+                Box::new(TopologyTool::default()),
+                Box::new(SubnetTool::default()),
+                Box::new(VlanTool::default()),
+                Box::new(TemplateTool::default()),
+                Box::new(FirmwareTool::default()),
                 Box::new(SettingsTool::new(settings)),
             ],
             secili: 0,
@@ -296,9 +297,9 @@ impl CiscoApp {
 
                 // Kategorileri tanımla: (Başlık, [Tool İndeksleri])
                 let kategoriler = vec![
-                    ("Ağ Planlama", vec![0, 1, 9]),
-                    ("Cihaz Yönetimi", vec![4, 13, 5, 2, 7, 6, 11, 12]),
-                    ("Güvenlik & İzleme", vec![3, 8, 10]),
+                    ("Operasyon", vec![0, 1, 2, 3, 4, 5, 6]),
+                    ("Izleme & Topoloji", vec![7, 8, 9]),
+                    ("Planlama & Lab", vec![10, 11, 12, 13]),
                     ("Sistem", vec![14]),
                 ];
 
