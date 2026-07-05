@@ -127,9 +127,10 @@ impl BackupTool {
                         l.push(BackupLog {
                             time: now,
                             device: name.clone(),
-                            status: status_msg,
+                            status: status_msg.clone(),
                         });
                     }
+                    db::record_audit("backup.running_config", &ip, "finished", &status_msg);
                     ctx.request_repaint();
                 }
 
@@ -168,7 +169,20 @@ impl ToolScreen for BackupTool {
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
                 if ui.button("Kilidi Aç").clicked() && !self.master_pass.is_empty() {
-                    self.unlocked = true;
+                    match db::verify_or_initialize_vault(&self.master_pass) {
+                        Ok(()) => self.unlocked = true,
+                        Err(e) => {
+                            if let Ok(mut l) = self.logs.lock() {
+                                l.push(BackupLog {
+                                    time: chrono::Local::now()
+                                        .format("%Y-%m-%d %H:%M:%S")
+                                        .to_string(),
+                                    device: "Vault".to_string(),
+                                    status: e,
+                                });
+                            }
+                        }
+                    }
                 }
             });
             return None;

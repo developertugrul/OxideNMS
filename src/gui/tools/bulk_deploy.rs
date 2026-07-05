@@ -23,6 +23,9 @@ pub struct BulkDeployTool {
     devices: Arc<Mutex<Vec<DeviceData>>>,
     commands: String,
     is_deploying: bool,
+    dry_run: bool,
+    confirm_persistent: bool,
+    status_msg: String,
 }
 
 impl Default for BulkDeployTool {
@@ -33,6 +36,9 @@ impl Default for BulkDeployTool {
             devices: Arc::new(Mutex::new(Vec::new())),
             commands: String::new(),
             is_deploying: false,
+            dry_run: true,
+            confirm_persistent: false,
+            status_msg: String::new(),
         }
     }
 }
@@ -40,6 +46,20 @@ impl Default for BulkDeployTool {
 impl BulkDeployTool {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    fn command_requires_confirmation(commands: &str) -> bool {
+        let lower = commands.to_lowercase();
+        [
+            "write memory",
+            "copy running-config startup-config",
+            "copy run start",
+            "reload",
+            "erase startup-config",
+            "boot system",
+        ]
+        .iter()
+        .any(|needle| lower.contains(needle))
     }
 
     fn fetch_devices(&mut self) {
@@ -68,9 +88,28 @@ impl BulkDeployTool {
     }
 
     fn deploy_commands(&mut self, ctx: egui::Context) {
+        if self.commands.trim().is_empty() {
+            self.status_msg = "Komut bos olamaz.".to_string();
+            return;
+        }
+
+        if Self::command_requires_confirmation(&self.commands) && !self.confirm_persistent {
+            self.status_msg =
+                "Kalici/riskli komut algilandi. Devam etmek icin onay kutusunu isaretleyin."
+                    .to_string();
+            db::record_audit(
+                "bulk_deploy.blocked",
+                "selected-devices",
+                "blocked",
+                "Persistent command confirmation missing",
+            );
+            return;
+        }
+
         self.is_deploying = true;
         let cmds = self.commands.clone();
         let m_pass = self.master_pass.clone();
+        let dry_run = self.dry_run;
 
         let devices_arc = self.devices.clone();
 
@@ -80,10 +119,11 @@ impl BulkDeployTool {
         };
 
         for i in 0..devices_len {
-            let (ip, user, enc_cred, selected) = {
+            let (name, ip, user, enc_cred, selected) = {
                 let lock = devices_arc.lock().unwrap();
                 let dev = &lock[i];
                 (
+                    dev.name.clone(),
                     dev.ip.clone(),
                     dev.user.clone(),
                     dev.enc_cred.clone(),
@@ -97,7 +137,16 @@ impl BulkDeployTool {
 
             {
                 let mut lock = devices_arc.lock().unwrap();
-                lock[i].status = Some("Gönderiliyor...".to_string());
+                lock[i].status = Some(if dry_run {
+                    "DRY-RUN".to_string()
+                } else {
+                    "Gonderiliyor...".to_string()
+                });
+            }
+
+            if dry_run {
+                db::record_audit("bulk_deploy.dry_run", &ip, "preview", &cmds);
+                continue;
             }
 
             let cmds_thread = cmds.clone();
@@ -119,7 +168,7 @@ impl BulkDeployTool {
                                 let mut local_sess = sess.run_local();
                                 match local_sess.open_exec() {
                                     Ok(exec) => match exec.send_command(&cmds_thread) {
-                                        Ok(_) => "BAŞARILI".to_string(),
+                                        Ok(_) => "BASARILI".to_string(),
                                         Err(e) => format!("Cmd Err: {:?}", e),
                                     },
                                     Err(e) => format!("Exec Err: {:?}", e),
@@ -134,8 +183,9 @@ impl BulkDeployTool {
                 if let Ok(mut lock) = devs_clone.lock()
                     && let Some(d) = lock.get_mut(i)
                 {
-                    d.status = Some(result);
+                    d.status = Some(result.clone());
                 }
+                db::record_audit("bulk_deploy.execute", &ip, &result, &name);
                 bg_ctx.request_repaint();
             });
         }
@@ -164,19 +214,37 @@ impl ToolScreen for BulkDeployTool {
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
                 if ui.button(t(dil, Message::Unlock)).clicked() && !self.master_pass.is_empty() {
-                    self.unlocked = true;
-                    self.fetch_devices();
+                    match db::verify_or_initialize_vault(&self.master_pass) {
+                        Ok(()) => {
+                            self.unlocked = true;
+                            self.fetch_devices();
+                            self.status_msg = "Vault dogrulandi.".to_string();
+                        }
+                        Err(e) => self.status_msg = e,
+                    }
                 }
             });
+            if !self.status_msg.is_empty() {
+                ui.colored_label(egui::Color32::YELLOW, &self.status_msg);
+            }
             return None;
         }
 
         ui.label(t(dil, Message::DeployCommands));
         ui.add(egui::TextEdit::multiline(&mut self.commands).desired_rows(5));
         ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut self.dry_run, "Dry-run / on izleme");
+            if Self::command_requires_confirmation(&self.commands) {
+                ui.checkbox(&mut self.confirm_persistent, "Kalici komutlari onayliyorum");
+            }
+        });
 
         if ui.button(t(dil, Message::DeployCommands)).clicked() {
             self.deploy_commands(ui.ctx().clone());
+        }
+        if !self.status_msg.is_empty() {
+            ui.colored_label(egui::Color32::YELLOW, &self.status_msg);
         }
 
         ui.add_space(10.0);

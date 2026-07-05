@@ -53,6 +53,12 @@ impl DeviceManagerTool {
                 .execute("DELETE FROM devices WHERE id = ?1", [id])
                 .is_ok()
             {
+                db::record_audit(
+                    "device.delete",
+                    &id.to_string(),
+                    "success",
+                    "Device removed",
+                );
                 self.status_msg = "Cihaz silindi.".to_string();
             }
         }
@@ -81,9 +87,18 @@ impl ToolScreen for DeviceManagerTool {
             ui.horizontal(|ui| {
                 ui.add(egui::TextEdit::singleline(&mut self.master_pass).password(true));
                 if ui.button(t(dil, Message::Unlock)).clicked() && !self.master_pass.is_empty() {
-                    self.unlocked = true;
+                    match db::verify_or_initialize_vault(&self.master_pass) {
+                        Ok(()) => {
+                            self.unlocked = true;
+                            self.status_msg = "Vault dogrulandi.".to_string();
+                        }
+                        Err(e) => self.status_msg = e,
+                    }
                 }
             });
+            if !self.status_msg.is_empty() {
+                ui.colored_label(egui::Color32::YELLOW, &self.status_msg);
+            }
             return None;
         }
 
@@ -111,22 +126,34 @@ impl ToolScreen for DeviceManagerTool {
             });
 
             if ui.button(t(dil, Message::SaveDevice)).clicked()
-                && !self.new_name.is_empty() && !self.new_ip.is_empty() {
-                    let enc_pass = crypto::encrypt_credential(&self.new_pass, &self.master_pass)
-                        .unwrap_or_default();
-
-                    if let Ok(conn) = db::get_connection() {
-                        let _ = conn.execute(
+                && !self.new_name.is_empty()
+                && !self.new_ip.is_empty()
+            {
+                match crypto::encrypt_credential(&self.new_pass, &self.master_pass) {
+                    Ok(enc_pass) => {
+                        if let Ok(conn) = db::get_connection() {
+                            let result = conn.execute(
                             "INSERT INTO devices (name, ip_address, username, encrypted_credentials) VALUES (?1, ?2, ?3, ?4)",
                             [&self.new_name, &self.new_ip, &self.new_user, &enc_pass],
                         );
-                        self.status_msg = t(dil, Message::DeviceSaved).to_string();
-                        self.new_name.clear();
-                        self.new_ip.clear();
-                        self.new_user.clear();
-                        self.new_pass.clear();
+                            if result.is_ok() {
+                                db::record_audit(
+                                    "device.create",
+                                    &self.new_ip,
+                                    "success",
+                                    &self.new_name,
+                                );
+                                self.status_msg = t(dil, Message::DeviceSaved).to_string();
+                                self.new_name.clear();
+                                self.new_ip.clear();
+                                self.new_user.clear();
+                                self.new_pass.clear();
+                            }
+                        }
                     }
+                    Err(e) => self.status_msg = e,
                 }
+            }
         });
 
         if !self.status_msg.is_empty() {
