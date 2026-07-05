@@ -5,6 +5,18 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.7] - 2026-07-05
+
+### Added
+
+- Added a Configuration Lifecycle screen for device backup history.
+- Added latest-two snapshot comparison handoff into the Diff tool.
+
+### Changed
+
+- Limited release artifacts to Windows amd64, Linux amd64, and macOS arm64 while
+  hosted macOS Intel runners remain queued.
+
 ## [1.0.6] - 2026-07-05
 
 ### Fixed
