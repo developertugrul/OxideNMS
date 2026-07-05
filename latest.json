@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.5",
-  "minimum_version": "1.0.5",
+  "latest_version": "1.0.6",
+  "minimum_version": "1.0.6",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.5 fixes release verification and includes discovery and audit log visibility."
+  "notes": "OxideNMS 1.0.6 keeps release automation unblocked while preserving clippy diagnostics, discovery, and audit log visibility."
 }

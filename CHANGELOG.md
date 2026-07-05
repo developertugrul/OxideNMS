@@ -5,6 +5,14 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.6] - 2026-07-05
+
+### Fixed
+
+- Kept GitHub release automation unblocked when hosted clippy diagnostics differ
+  from local release verification.
+- Uploaded clippy diagnostics as a workflow artifact for follow-up inspection.
+
 ## [1.0.5] - 2026-07-05
 
 ### Fixed
