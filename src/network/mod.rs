@@ -4,6 +4,7 @@
 //! sadece "verilen ag verisinden dogru sonucu uretir".
 
 pub mod diff;
+pub mod discovery;
 pub mod security;
 pub mod subnet;
 
