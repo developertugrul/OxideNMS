@@ -5,6 +5,22 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.3] - 2026-07-05
+
+### Added
+
+- Mandatory GitHub-hosted update manifest at `latest.json`.
+- Vault verification, OS data-directory database storage, and audit logging.
+- Operator dashboard backed by inventory, config history, audit, and security data.
+- Extended device lifecycle inventory fields.
+- Markdown and CSV security audit report export.
+
+### Changed
+
+- New releases now lock older application builds through `latest_version`.
+- The update manifest URL is fixed in code and cannot be changed from user settings.
+- Release automation is triggered by pushing a new `v*` tag.
+
 ## [1.0.2] - 2026-07-05
 
 ### Added

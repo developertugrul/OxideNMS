@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.2",
-  "minimum_version": "1.0.2",
+  "latest_version": "1.0.3",
+  "minimum_version": "1.0.3",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.2 is the current mandatory baseline."
+  "notes": "OxideNMS 1.0.3 is the current mandatory baseline."
 }
