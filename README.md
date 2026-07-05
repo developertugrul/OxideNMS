@@ -37,7 +37,7 @@ Geleneksel ağ yönetim araçlarının karmaşıklığından kurtulun. OxideNMS,
 OxideNMS, ek bir bağımlılık olmadan çalışabilen tek bir çalıştırılabilir dosya (binary) olarak gelir. 
 
 ### Hazır Sürümler (Pre-built Binaries)
-GitHub üzerindeki [Releases](#) sayfasından işletim sisteminize uygun (Windows `.exe`, macOS `.dmg`, Linux `.deb` veya AppImage) sürümü indirebilirsiniz. 
+GitHub üzerindeki [Releases](https://github.com/developertugrul/OxideNMS/releases) sayfasından işletim sisteminize uygun (Windows `.exe`, macOS veya Linux) sürümü indirebilirsiniz. Sürümler GitHub Actions tarafından otomatik derlenmektedir.
 
 ### Kaynaktan Derleme (Build from Source)
 Proje açık kaynak olduğu için kendi ortamınızda anında derleyebilirsiniz:
