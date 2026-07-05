@@ -3,8 +3,8 @@ name = "oxidenms"
 version = "1.0.2"
 edition = "2024"
 authors = ["Cisco App Developer"]
-description = "Professional Cisco Network Configuration & Management Tool"
-repository = "https://github.com/your-username/cisco-tools"
+description = "Professional Cisco-focused NMS/NCCCM and cybersecurity operations desktop tool"
+repository = "https://github.com/developertugrul/OxideNMS"
 license = "MIT"
 
 [dependencies]

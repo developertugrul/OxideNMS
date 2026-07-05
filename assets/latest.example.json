@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.0",
-  "minimum_version": "1.0.0",
-  "download_url": "https://ornek.com/cisco/indir",
-  "notes": "Bu bir test manifestidir. minimum_version 1.0.0 oldugu ve uygulama 0.1.0 oldugu icin ZORUNLU guncelleme ekrani cikar."
+  "latest_version": "1.0.2",
+  "minimum_version": "1.0.2",
+  "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
+  "notes": "OxideNMS 1.0.2 release manifest example. Raise minimum_version only when older builds must be blocked."
 }
