@@ -1,0 +1,37 @@
+[package]
+name = "oxidenms"
+version = "0.1.0"
+edition = "2024"
+authors = ["Cisco App Developer"]
+description = "Professional Cisco Network Configuration & Management Tool"
+repository = "https://github.com/your-username/cisco-tools"
+license = "MIT"
+
+[dependencies]
+# Komut satiri ayristirma (profesyonel standart)
+clap = { version = "4", features = ["derive"] }
+# Temiz, tur-guvenli hata tipleri
+thiserror = "2"
+# Masaustu GUI (egui, eframe ile). egui: eframe::egui olarak gelir.
+eframe = "0.31"
+# Surum manifesti icin: HTTP indir + JSON coz + surum karsilastir
+ureq = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+semver = "1"
+# Uygulama ayarlari: TOML dosyasi + OS standart config klasoru
+toml = "0.8"
+dirs = "5"
+similar = "3.1.1"
+rusqlite = { version = "0.31", features = ["bundled"] }
+ssh-rs = "0.5.0"
+
+# Pure-Rust Cryptography for encrypted credentials
+aes-gcm = "0.10"
+pbkdf2 = "0.12"
+hmac = "0.12"
+sha2 = "0.10"
+rand = "0.8"
+hex = "0.4"
+chrono = "0.4.45"
+snmp = "0.2.2"
