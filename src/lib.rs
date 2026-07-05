@@ -17,5 +17,6 @@ pub mod error;
 pub mod gui;
 pub mod i18n;
 pub mod network;
+pub mod report;
 pub mod settings;
 pub mod update;

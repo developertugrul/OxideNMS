@@ -96,6 +96,19 @@ impl ToolScreen for SecurityTool {
                     t(dil, Message::SecFindings).replace("{0}", &self.bulgular.len().to_string());
                 ui.label(egui::RichText::new(ozet).strong());
                 ui.add_space(6.0);
+                ui.horizontal(|ui| {
+                    if ui.button("Markdown raporu kopyala").clicked() {
+                        ui.ctx().copy_text(crate::report::security_markdown_report(
+                            "pasted-config",
+                            &self.bulgular,
+                        ));
+                    }
+                    if ui.button("CSV raporu kopyala").clicked() {
+                        ui.ctx()
+                            .copy_text(crate::report::security_csv_report(&self.bulgular));
+                    }
+                });
+                ui.add_space(6.0);
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for b in &self.bulgular {
