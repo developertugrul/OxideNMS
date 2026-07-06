@@ -23,6 +23,7 @@ AppUpdatesURL=https://github.com/developertugrul/OxideNMS/releases/latest
 DefaultDirName={autopf}\OxideNMS
 DefaultGroupName=OxideNMS
 DisableProgramGroupPage=yes
+SetupIconFile=..\..\assets\icons\oxidenms.ico
 OutputDir={#OutputDir}
 OutputBaseFilename={#OutputBaseFilename}
 Compression=lzma2
@@ -41,10 +42,11 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "OxideNMS.exe"; Flags: ignoreversion
+Source: "..\..\assets\icons\oxidenms.ico"; DestDir: "{app}"; DestName: "OxideNMS.ico"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\OxideNMS"; Filename: "{app}\OxideNMS.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\OxideNMS"; Filename: "{app}\OxideNMS.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\OxideNMS"; Filename: "{app}\OxideNMS.exe"; WorkingDir: "{app}"; IconFilename: "{app}\OxideNMS.ico"
+Name: "{autodesktop}\OxideNMS"; Filename: "{app}\OxideNMS.exe"; WorkingDir: "{app}"; IconFilename: "{app}\OxideNMS.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\OxideNMS.exe"; Description: "Launch OxideNMS"; Flags: nowait postinstall skipifsilent

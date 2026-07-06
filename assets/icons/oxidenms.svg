@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="OxideNMS icon">
+  <defs>
+    <linearGradient id="shield" x1="48" y1="32" x2="208" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B365D"/>
+      <stop offset="0.55" stop-color="#0B6E8A"/>
+      <stop offset="1" stop-color="#1F7A5A"/>
+    </linearGradient>
+    <linearGradient id="core" x1="76" y1="70" x2="180" y2="184" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D9F7FF"/>
+      <stop offset="1" stop-color="#7DFFB2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="52" fill="#09111F"/>
+  <path d="M128 26 202 58v63c0 49-28 87-74 110-46-23-74-61-74-110V58l74-32Z"
+        fill="url(#shield)" stroke="#D9F7FF" stroke-width="6" stroke-linejoin="round"/>
+
+  <path d="M88 112h80M128 82v92M94 164l34-52 34 52"
+        fill="none" stroke="#D9F7FF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="128" cy="82" r="18" fill="url(#core)" stroke="#09111F" stroke-width="6"/>
+  <circle cx="88" cy="112" r="18" fill="url(#core)" stroke="#09111F" stroke-width="6"/>
+  <circle cx="168" cy="112" r="18" fill="url(#core)" stroke="#09111F" stroke-width="6"/>
+  <circle cx="94" cy="164" r="18" fill="url(#core)" stroke="#09111F" stroke-width="6"/>
+  <circle cx="162" cy="164" r="18" fill="url(#core)" stroke="#09111F" stroke-width="6"/>
+
+  <path d="M64 202h128" stroke="#7DFFB2" stroke-width="8" stroke-linecap="round" opacity="0.75"/>
+</svg>

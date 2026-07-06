@@ -18,7 +18,7 @@ use tools::{
     SubnetTool, SyslogTool, TemplateTool, ToolEvent, ToolScreen, TopologyTool, VlanTool,
 };
 
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use crate::settings::{AppSettings, Theme};
 use crate::update::{self, UpdateStatus, VersionManifest};
 
@@ -48,6 +48,12 @@ pub fn run() -> eframe::Result {
         options,
         Box::new(move |cc| Ok(Box::new(CiscoApp::new(&cc.egui_ctx, settings)))),
     )
+}
+
+fn app_icon() -> Option<Arc<egui::IconData>> {
+    eframe::icon_data::from_png_bytes(include_bytes!("../../assets/icons/oxidenms.png"))
+        .ok()
+        .map(Arc::new)
 }
 
 /// 17 dilin tüm yazı sistemlerini göstermek için gömülü fontları kurar:
@@ -127,6 +133,9 @@ impl CiscoApp {
         }
 
         fontlari_kur(ctx);
+        if let Some(icon) = app_icon() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Icon(Some(icon)));
+        }
 
         let mut visuals = match settings.tema {
             Theme::Koyu => egui::Visuals::dark(),
@@ -288,50 +297,127 @@ impl CiscoApp {
 
     fn sol_panel(&mut self, ctx: &egui::Context) {
         let dil = self.dil;
-        // Araç adlarını önceden topla (borrow sorununu önlemek için).
-        let adlar: Vec<(&'static str, &'static str)> =
-            self.tools.iter().map(|a| (a.icon(), a.name(dil))).collect();
+        let araclar: Vec<(&'static str, &'static str)> =
+            self.tools.iter().map(|a| (a.id(), a.name(dil))).collect();
 
         egui::SidePanel::left("tools")
             .resizable(false)
-            .exact_width(220.0)
+            .exact_width(268.0)
             .show(ctx, |ui| {
-                ui.add_space(12.0);
+                ui.add_space(14.0);
+                ui.label(egui::RichText::new("OxideNMS").size(18.0).strong());
+                ui.label(
+                    egui::RichText::new(text(
+                        dil,
+                        "Network Configuration Management",
+                        "Ağ konfigürasyon yönetimi",
+                    ))
+                    .small()
+                    .weak(),
+                );
+                ui.add_space(14.0);
+                ui.separator();
+                ui.add_space(10.0);
 
-                // Kategorileri tanımla: (Başlık, [Tool İndeksleri])
-                let kategoriler = vec![
-                    ("Operasyon", vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-                    ("Izleme & Topoloji", vec![10, 11, 12]),
-                    ("Planlama & Lab", vec![13, 14, 15, 16]),
-                    ("Sistem", vec![17]),
-                ];
-
-                for (kat_adi, indeksler) in kategoriler {
-                    ui.label(egui::RichText::new(kat_adi).strong().weak().size(14.0));
-                    ui.add_space(4.0);
-
-                    for i in indeksler {
-                        if let Some((icon, name)) = adlar.get(i) {
-                            let label = format!("{}  {}", icon, name);
-                            // Seçili item için biraz daha yüksek padding/font verebiliriz
-                            let selected = self.secili == i;
-                            let text = if selected {
-                                egui::RichText::new(label).strong()
-                            } else {
-                                egui::RichText::new(label)
-                            };
-
-                            if ui.add(egui::SelectableLabel::new(selected, text)).clicked() {
-                                self.secili = i;
-                            }
-                        }
-                    }
-                    ui.add_space(12.0);
-                }
+                self.nav_section(
+                    ui,
+                    text(dil, "Operations", "Operasyon"),
+                    &[
+                        "dashboard",
+                        "device_manager",
+                        "discovery",
+                        "config_history",
+                        "auto_backup",
+                    ],
+                    &araclar,
+                );
+                self.nav_section(
+                    ui,
+                    text(dil, "Security", "Güvenlik"),
+                    &["security", "audit_log", "syslog"],
+                    &araclar,
+                );
+                self.nav_section(
+                    ui,
+                    text(dil, "Change Control", "Değişiklik yönetimi"),
+                    &["bulk_deploy", "diff", "ssh"],
+                    &araclar,
+                );
+                self.nav_section(
+                    ui,
+                    text(dil, "Topology & Planning", "Topoloji ve planlama"),
+                    &[
+                        "snmp_map", "topology", "subnet", "vlan", "template", "firmware",
+                    ],
+                    &araclar,
+                );
+                self.nav_section(ui, text(dil, "System", "Sistem"), &["settings"], &araclar);
             });
+    }
+
+    fn nav_section(
+        &mut self,
+        ui: &mut egui::Ui,
+        title: &str,
+        tool_ids: &[&str],
+        tools: &[(&'static str, &'static str)],
+    ) {
+        ui.label(egui::RichText::new(title).small().strong().weak());
+        ui.add_space(4.0);
+
+        for tool_id in tool_ids {
+            if let Some((index, (_id, name))) =
+                tools.iter().enumerate().find(|(_, (id, _))| id == tool_id)
+            {
+                let selected = self.secili == index;
+                if nav_row(ui, name, selected).clicked() {
+                    self.secili = index;
+                }
+            }
+        }
+
+        ui.add_space(12.0);
     }
 }
 
+fn nav_row(ui: &mut egui::Ui, label: &str, selected: bool) -> egui::Response {
+    let width = ui.available_width();
+    let height = 30.0;
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::click());
+
+    if ui.is_rect_visible(rect) {
+        let visuals = ui.visuals();
+        let fill = if selected {
+            visuals.selection.bg_fill
+        } else if response.hovered() {
+            visuals.widgets.hovered.bg_fill
+        } else {
+            egui::Color32::TRANSPARENT
+        };
+
+        ui.painter().rect_filled(rect, 4.0, fill);
+        if selected {
+            let accent = egui::Rect::from_min_size(rect.min, egui::vec2(3.0, rect.height()));
+            ui.painter()
+                .rect_filled(accent, 2.0, visuals.selection.stroke.color);
+        }
+
+        let text_color = if selected {
+            visuals.selection.stroke.color
+        } else {
+            visuals.text_color()
+        };
+        ui.painter().text(
+            egui::pos2(rect.left() + 12.0, rect.center().y),
+            egui::Align2::LEFT_CENTER,
+            label,
+            egui::FontId::proportional(14.0),
+            text_color,
+        );
+    }
+
+    response
+}
 // --- Sürüm / güncelleme ekranları ---
 
 impl CiscoApp {
