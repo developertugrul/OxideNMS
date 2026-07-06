@@ -101,14 +101,8 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          $sourceExe = (Resolve-Path "target\${{ matrix.target }}\release\oxidenms.exe").Path
-          $outputDir = (Resolve-Path ".").Path
-          $outputBaseName = [System.IO.Path]::GetFileNameWithoutExtension("${{ matrix.artifact_name }}")
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
-            "/DAppVersion=`"$version`"" `
-            "/DSourceExe=`"$sourceExe`"" `
-            "/DOutputDir=`"$outputDir`"" `
-            "/DOutputBaseFilename=`"$outputBaseName`"" `
+            "/DAppVersion=$version" `
             "packaging\windows\OxideNMS.iss"
 
       - name: Upload binaries to release
