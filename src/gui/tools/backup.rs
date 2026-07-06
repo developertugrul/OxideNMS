@@ -40,6 +40,56 @@ impl BackupTool {
         Self::default()
     }
 
+    fn run_backup(
+        id: i32,
+        ip: &str,
+        user: &str,
+        enc_cred: &str,
+        master_pass: &str,
+    ) -> (bool, String) {
+        let Ok(plain_pass) = crypto::decrypt_credential(enc_cred, master_pass) else {
+            return (false, "Password decrypt failed".to_string());
+        };
+
+        let addr = format!("{}:22", ip);
+        let session = ssh::create_session()
+            .username(user)
+            .password(&plain_pass)
+            .connect(&addr);
+
+        let Ok(sess) = session else {
+            return (false, "SSH connection failed".to_string());
+        };
+
+        let mut local_sess = sess.run_local();
+        let Ok(exec) = local_sess.open_exec() else {
+            return (false, "Exec channel failed".to_string());
+        };
+
+        let res: Result<Vec<u8>, _> = exec.send_command("show running-config");
+        let Ok(vec) = res else {
+            return (false, "Command failed".to_string());
+        };
+
+        let config = String::from_utf8_lossy(&vec).into_owned();
+        let Ok(conn) = db::get_connection() else {
+            return (false, "Database connection failed".to_string());
+        };
+
+        match db::devices::save_config(&conn, id as i64, &config) {
+            Ok(snapshot_id) => (true, format!("Backup successful; snapshot #{snapshot_id}")),
+            Err(e) => (false, format!("Config save failed: {e}")),
+        }
+    }
+
+    fn recent_jobs() -> Vec<db::jobs::OperationJob> {
+        let Ok(conn) = db::get_connection() else {
+            return Vec::new();
+        };
+
+        db::jobs::recent_by_kind(&conn, "backup.running_config", 20).unwrap_or_default()
+    }
+
     fn start_backup_loop(&mut self, ctx: egui::Context) {
         let is_running = self.is_running.clone();
         let logs = self.logs.clone();
@@ -82,43 +132,31 @@ impl BackupTool {
                 }
 
                 for (id, name, ip, user, enc_cred) in devices {
-                    let status_msg =
-                        if let Ok(plain_pass) = crypto::decrypt_credential(&enc_cred, &m_pass) {
-                            let addr = format!("{}:22", ip);
-                            let session = ssh::create_session()
-                                .username(&user)
-                                .password(&plain_pass)
-                                .connect(&addr);
+                    let target = format!("{name} ({ip})");
+                    let job_id = db::get_connection().ok().and_then(|conn| {
+                        let job_id = db::jobs::enqueue(
+                            &conn,
+                            "backup.running_config",
+                            &target,
+                            1,
+                            "Scheduled running-config backup",
+                        )
+                        .ok()?;
+                        let _ = db::jobs::mark_running(&conn, job_id);
+                        Some(job_id)
+                    });
 
-                            match session {
-                                Ok(sess) => {
-                                    let mut local_sess = sess.run_local();
-                                    match local_sess.open_exec() {
-                                        Ok(exec) => {
-                                            let res: Result<Vec<u8>, _> =
-                                                exec.send_command("show running-config");
-                                            match res {
-                                                Ok(vec) => {
-                                                    let config =
-                                                        String::from_utf8_lossy(&vec).into_owned();
-                                                    if let Ok(conn) = db::get_connection() {
-                                                        let _ = db::devices::save_config(
-                                                            &conn, id as i64, &config,
-                                                        );
-                                                    }
-                                                    "Backup successful".to_string()
-                                                }
-                                                Err(_) => "Command failed".to_string(),
-                                            }
-                                        }
-                                        Err(_) => "Exec channel failed".to_string(),
-                                    }
-                                }
-                                Err(_) => "SSH connection failed".to_string(),
-                            }
+                    let (ok, status_msg) = Self::run_backup(id, &ip, &user, &enc_cred, &m_pass);
+
+                    if let Some(job_id) = job_id
+                        && let Ok(conn) = db::get_connection()
+                    {
+                        if ok {
+                            let _ = db::jobs::mark_succeeded(&conn, job_id, &status_msg);
                         } else {
-                            "Password decrypt failed".to_string()
-                        };
+                            let _ = db::jobs::mark_failed(&conn, job_id, &status_msg, "");
+                        }
+                    }
 
                     if let Ok(mut l) = logs.lock() {
                         let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
@@ -128,7 +166,12 @@ impl BackupTool {
                             status: status_msg.clone(),
                         });
                     }
-                    db::record_audit("backup.running_config", &ip, "finished", &status_msg);
+                    db::record_audit(
+                        "backup.running_config",
+                        &ip,
+                        if ok { "success" } else { "failed" },
+                        &status_msg,
+                    );
                     ctx.request_repaint();
                 }
 
@@ -238,6 +281,48 @@ impl ToolScreen for BackupTool {
                 }
             }
         });
+
+        ui.add_space(18.0);
+        ui.heading(text(dil, "Recent backup jobs", "Son backup joblari"));
+        let jobs = Self::recent_jobs();
+        if jobs.is_empty() {
+            ui.label(text(
+                dil,
+                "No persisted backup jobs yet.",
+                "Henuz kalici backup job kaydi yok.",
+            ));
+        } else {
+            egui::ScrollArea::vertical()
+                .max_height(220.0)
+                .show(ui, |ui| {
+                    egui::Grid::new("backup_jobs_grid")
+                        .striped(true)
+                        .spacing([14.0, 6.0])
+                        .show(ui, |ui| {
+                            ui.strong("ID");
+                            ui.strong(text(dil, "Target", "Hedef"));
+                            ui.strong(text(dil, "Status", "Durum"));
+                            ui.strong(text(dil, "Attempts", "Deneme"));
+                            ui.strong(text(dil, "Queued", "Kuyruk"));
+                            ui.strong(text(dil, "Result", "Sonuc"));
+                            ui.end_row();
+
+                            for job in jobs {
+                                ui.monospace(job.id.to_string());
+                                ui.label(job.target);
+                                ui.label(job.status);
+                                ui.label(format!("{}/{}", job.attempts, job.max_attempts));
+                                ui.label(job.queued_at);
+                                ui.label(
+                                    job.last_error
+                                        .or(job.details)
+                                        .unwrap_or_else(|| "-".to_string()),
+                                );
+                                ui.end_row();
+                            }
+                        });
+                });
+        }
 
         None
     }

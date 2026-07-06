@@ -1,4 +1,5 @@
 pub mod devices;
+pub mod jobs;
 
 use rusqlite::{Connection, OptionalExtension, Result, params};
 use std::path::PathBuf;
@@ -36,7 +37,12 @@ pub fn database_path() -> PathBuf {
 /// Veritabani baglantisini dondurur ve gerekli tablolari olusturur.
 pub fn get_connection() -> Result<Connection> {
     let conn = Connection::open(database_path())?;
+    initialize_schema(&conn)?;
+    Ok(conn)
+}
 
+/// Veritabani semasini olusturur veya eksik alanlari tamamlar.
+pub fn initialize_schema(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS devices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +101,24 @@ pub fn get_connection() -> Result<Connection> {
         [],
     )?;
 
-    Ok(conn)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS operation_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            target TEXT NOT NULL,
+            status TEXT NOT NULL,
+            queued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            started_at DATETIME,
+            finished_at DATETIME,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            max_attempts INTEGER NOT NULL DEFAULT 1,
+            details TEXT,
+            last_error TEXT
+        )",
+        [],
+    )?;
+
+    Ok(())
 }
 
 /// Master password'u dogrular; ilk calistirmada vault check kaydini olusturur.
