@@ -5,6 +5,18 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.9] - 2026-07-06
+
+### Added
+
+- Added a Windows installer release asset named
+  `OxideNMS-windows-amd64-setup.exe`.
+
+### Changed
+
+- Simplified README pages into product introduction and installation pages.
+- Updated release guidance to describe the installer-based Windows distribution.
+
 ## [1.0.8] - 2026-07-06
 
 ### Fixed

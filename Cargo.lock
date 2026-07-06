@@ -2780,7 +2780,7 @@ dependencies = [
 
 [[package]]
 name = "oxidenms"
-version = "1.0.8"
+version = "1.0.9"
 dependencies = [
  "aes-gcm",
  "chrono",
