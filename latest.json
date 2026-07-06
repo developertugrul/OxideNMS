@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.0.9",
-  "minimum_version": "1.0.9",
+  "latest_version": "1.0.10",
+  "minimum_version": "1.0.10",
   "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "OxideNMS 1.0.9 adds a Windows installer release asset and simplifies the project README."
+  "notes": "OxideNMS 1.0.10 publishes the Windows installer release asset."
 }

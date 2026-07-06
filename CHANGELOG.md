@@ -5,6 +5,12 @@ All notable changes to OxideNMS will be documented in this file.
 The project follows Conventional Commits and GitHub Releases. Versions use
 semantic versioning.
 
+## [1.0.10] - 2026-07-06
+
+### Fixed
+
+- Fixed Windows installer output generation in the release workflow.
+
 ## [1.0.9] - 2026-07-06
 
 ### Added
