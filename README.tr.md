@@ -1,98 +1,87 @@
 # OxideNMS
 
-OxideNMS, Cisco odaklı ağ yönetimi, konfigürasyon kontrolü ve siber güvenlik
-operasyonları için geliştirilen Rust tabanlı masaüstü uygulamasıdır.
+OxideNMS, Cisco odakli ekipler icin gelistirilen profesyonel bir masaustu ag
+yonetimi ve siber guvenlik operasyon uygulamasidir.
 
-Hedef kullanıcılar CCNA, CCNP ve CCIE seviyesindeki ağ uzmanları ve güvenlik
-operatörleridir. Amaç; cihaz envanteri, konfigürasyon yedeği, diff, hardening
-denetimi, syslog görünürlüğü, SNMP kontrolleri ve kontrollü operasyon akışları
-için hızlı ve yerel çalışan profesyonel bir araç sunmaktır.
+Uygulama; CCNA, CCNP, CCIE, NOC, NetOps ve guvenlik operasyon kullanicilarinin
+gunluk Cisco ag operasyonlarini hizli, yerel ve kontrollu sekilde yonetebilmesi
+icin tasarlanmistir.
 
-## Mevcut Yetenekler
+## OxideNMS Ne Yapar?
 
-- Yerel SQLite tabanlı cihaz envanteri.
-- Master password ile AES-256-GCM kimlik bilgisi şifreleme.
+OxideNMS, ag konfigurasyon yonetiminde ihtiyac duyulan temel is akislarini tek
+masaustu uygulamasinda toplar:
+
+- Cihaz envanteri ve yasam dongusu takibi.
+- Sifreli yerel credential vault.
 - SSH ile running-config alma.
-- Konfigürasyon geçmişi ve yan yana diff akışı.
-- Cisco konfigürasyon hardening denetim kuralları.
-- Toplu komut gönderme iş akışı.
-- Otomatik yedekleme worker temeli.
-- SNMP durum haritası temeli.
-- Dahili UDP syslog dinleyici.
-- VLAN, subnet, template, firmware ve yardımcı araç ekranları.
-- Gömülü fontlarla çoklu dil UI altyapısı.
-- Zorunlu güncelleme manifest desteği.
+- Konfigurasyon yedek gecmisi.
+- Konfigurasyon karsilastirma ve degisiklik inceleme.
+- Cisco konfigurasyon hardening denetimleri.
+- Dry-run ve onay akisi olan toplu komut dagitimi.
+- Operasyon audit log kaydi.
+- Cihaz kesif taramasi.
+- Canli gorunurluk icin syslog dinleyici.
+- SNMP topoloji/durum haritasi temeli.
+- VLAN, subnet, template ve firmware operasyon ekranlari.
+- Resmi release manifest uzerinden zorunlu guncelleme.
 
-Bazı ekranlar hâlâ temel seviyededir ve yol haritasında izlenmektedir.
-OxideNMS profesyonel NMS/NCCCM kullanımına doğru olgunlaştırılır.
+## Kimler Icin?
 
-## Ürün Yönü
+OxideNMS, Cisco ortamlarini yoneten muhendis ve operasyon ekipleri icin
+gelistirilmektedir:
 
-OxideNMS şu profesyonel ağ konfigürasyon yönetimi beklentilerine göre
-geliştirilecektir:
+- CCNA, CCNP veya CCIE seviyesindeki ag uzmanlari.
+- Operasyonel tutarliliktan sorumlu NOC ve NetOps ekipleri.
+- Ag cihazi guvenlik durusunu inceleyen siber guvenlik ekipleri.
+- Kontrollu ve tasinabilir Cisco operasyon calisma istasyonu isteyen
+  danismanlar.
 
-- Keşif ve cihaz yaşam döngüsü envanteri.
-- Otomatik konfigürasyon yedekleme ve saklama politikası.
-- Değişiklik takibi, diff ve rollback hazırlığı.
-- Compliance ve siber güvenlik duruş raporları.
-- SNMP, CDP ve LLDP ile topoloji görünürlüğü.
-- Preview, onay ve audit log içeren güvenli toplu operasyonlar.
-- GitHub Release tabanlı masaüstü dağıtımı.
+## Guvenlik Modeli
 
-## Derleme ve Çalıştırma
+OxideNMS operasyon verisini yerel olarak saklar ve cihaz kimlik bilgilerini
+master password ile korur. Vault baslatma, cihaz degisiklikleri, yedekleme,
+kesif importlari ve toplu komut operasyonlari gibi hassas aksiyonlar audit log
+olarak kaydedilir.
 
-Rust kurulu değilse <https://rustup.rs/> üzerinden kurun:
+Guncelleme kontrolu zorunludur. Resmi yeni surum yayinlandiginda eski surumler
+uygulamayi kilitler ve kullanici guncel surumu kurmadan devam edemez.
+Guncelleme manifest adresi uygulama icinde sabittir; son kullanici tarafindan
+degistirilemez.
 
-```bash
-cargo run --release
-```
+## Kurulum
 
-Değişiklik yayınlamadan önce:
+Windows kullanicilari OxideNMS'i GitHub Releases sayfasindaki resmi kurulum
+paketiyle kurmalidir:
 
-```bash
-cargo fmt --check
-cargo test
-cargo clippy -- -D warnings
-```
+[Son OxideNMS surumunu indir](https://github.com/developertugrul/OxideNMS/releases/latest)
 
-## Release
+Windows installer, OxideNMS'i Program Files altina kurar, Start Menu kisayolu
+olusturur, kaldirma kaydi ekler ve istege bagli masaustu kisayolu olusturabilir.
 
-GitHub Release, sürüm tag'i ile oluşturulur:
+Linux ve macOS release assetleri su anda uygulama binary dosyasi olarak
+dagitilmaktadir.
 
-```bash
-git tag v1.0.2
-git push origin v1.0.2
-```
+## Urun Yonu
 
-Workflow Windows, Linux ve macOS binary üretir. Artifact isimleri
-`OxideNMS-{platform}-{arch}` standardını kullanır.
+OxideNMS profesyonel NMS/NCCCM is akislarina dogru gelistirilmektedir:
 
-## Güncelleme Manifesti
+- Zamanlanmis konfigurasyon yedegi ve saklama politikasi.
+- Degisiklik takibi ve rollback hazirligi.
+- Compliance policy setleri ve disa aktarilabilir raporlar.
+- SNMPv3 credential profilleri.
+- CDP/LLDP topoloji zenginlestirme.
+- Toplu operasyonlar icin daha guvenli job queue yapisi.
+- Security posture dashboard ve alarm mekanizmalari.
 
-OxideNMS sabit bir JSON manifest okur. `latest_version` çalışan sürümden
-yeniyse uygulama güncellenene kadar kilitlenir. Manifest URL'i kullanıcı
-tarafından değiştirilemez. Örnek dosya: [assets/latest.example.json](assets/latest.example.json).
+## Dokumantasyon
 
-```json
-{
-  "latest_version": "1.0.2",
-  "minimum_version": "1.0.2",
-  "download_url": "https://github.com/developertugrul/OxideNMS/releases/latest",
-  "notes": "Güvenlik ve güvenilirlik sürümü."
-}
-```
-
-`latest_version` zorunlu güncelleme kilidini belirler. `minimum_version`
-uyumluluk için manifestte kalır ve zorunlu taban sürümle aynı tutulmalıdır.
-
-## Dokümantasyon
-
-- [Yol haritası](docs/ROADMAP.md)
-- [Release süreci](docs/RELEASE.md)
-- [Güvenlik politikası](SECURITY.md)
-- [Katkı rehberi](CONTRIBUTING.md)
-- [Değişiklik günlüğü](CHANGELOG.md)
+- [Yol haritasi](docs/ROADMAP.md)
+- [Release sureci](docs/RELEASE.md)
+- [Guvenlik politikasi](SECURITY.md)
+- [Katki rehberi](CONTRIBUTING.md)
+- [Degisiklik gunlugu](CHANGELOG.md)
 
 ## Lisans
 
-OxideNMS MIT Lisansı ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE).
+OxideNMS MIT Lisansi ile lisanslanmistir. Detaylar icin [LICENSE](LICENSE).
