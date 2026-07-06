@@ -15,11 +15,32 @@ struct BackupLog {
     status: String,
 }
 
+#[derive(Clone)]
+struct BackupDevice {
+    id: i32,
+    name: String,
+    ip: String,
+    user: String,
+    enc_cred: String,
+}
+
+#[derive(Clone)]
+struct BackupRunOptions {
+    max_attempts: i32,
+    timeout_secs: i32,
+    retention_keep: i32,
+    details: &'static str,
+}
+
 pub struct BackupTool {
     master_pass: String,
     unlocked: bool,
     interval_hours: i32,
+    max_attempts: i32,
+    timeout_secs: i32,
+    retention_keep: i32,
     is_running: Arc<Mutex<bool>>,
+    is_manual_running: Arc<Mutex<bool>>,
     logs: Arc<Mutex<Vec<BackupLog>>>,
 }
 
@@ -29,7 +50,11 @@ impl Default for BackupTool {
             master_pass: String::new(),
             unlocked: false,
             interval_hours: 2,
+            max_attempts: 2,
+            timeout_secs: 15,
+            retention_keep: 20,
             is_running: Arc::new(Mutex::new(false)),
+            is_manual_running: Arc::new(Mutex::new(false)),
             logs: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -46,22 +71,27 @@ impl BackupTool {
         user: &str,
         enc_cred: &str,
         master_pass: &str,
+        timeout_secs: i32,
+        retention_keep: i32,
     ) -> (bool, String) {
         let Ok(plain_pass) = crypto::decrypt_credential(enc_cred, master_pass) else {
             return (false, "Password decrypt failed".to_string());
         };
 
         let addr = format!("{}:22", ip);
+        let timeout = Duration::from_secs(timeout_secs.max(1) as u64);
         let session = ssh::create_session()
+            .timeout(Some(timeout))
             .username(user)
             .password(&plain_pass)
-            .connect(&addr);
+            .connect_with_timeout(&addr, Some(timeout));
 
         let Ok(sess) = session else {
             return (false, "SSH connection failed".to_string());
         };
 
         let mut local_sess = sess.run_local();
+        local_sess.set_timeout(Some(timeout));
         let Ok(exec) = local_sess.open_exec() else {
             return (false, "Exec channel failed".to_string());
         };
@@ -77,8 +107,140 @@ impl BackupTool {
         };
 
         match db::devices::save_config(&conn, id as i64, &config) {
-            Ok(snapshot_id) => (true, format!("Backup successful; snapshot #{snapshot_id}")),
+            Ok(snapshot_id) => {
+                let pruned = db::devices::prune_config_history(
+                    &conn,
+                    id as i64,
+                    retention_keep.max(1) as i64,
+                )
+                .unwrap_or(0);
+                (
+                    true,
+                    format!("Backup successful; snapshot #{snapshot_id}; pruned {pruned} old"),
+                )
+            }
             Err(e) => (false, format!("Config save failed: {e}")),
+        }
+    }
+
+    fn fetch_devices() -> Vec<BackupDevice> {
+        let mut devices = Vec::new();
+        if let Ok(conn) = db::get_connection()
+            && let Ok(mut stmt) = conn.prepare(
+                "SELECT id, name, ip_address, username, encrypted_credentials FROM devices",
+            )
+            && let Ok(iter) = stmt.query_map([], |row| {
+                Ok(BackupDevice {
+                    id: row.get::<_, i32>(0)?,
+                    name: row.get::<_, String>(1)?,
+                    ip: row.get::<_, String>(2)?,
+                    user: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                    enc_cred: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                })
+            })
+        {
+            devices.extend(iter.flatten());
+        }
+
+        devices
+    }
+
+    fn append_log(logs: &Arc<Mutex<Vec<BackupLog>>>, device: &str, status: &str) {
+        if let Ok(mut l) = logs.lock() {
+            let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            l.push(BackupLog {
+                time: now,
+                device: device.to_string(),
+                status: status.to_string(),
+            });
+        }
+    }
+
+    fn execute_device_backup(
+        device: BackupDevice,
+        master_pass: &str,
+        options: &BackupRunOptions,
+        logs: &Arc<Mutex<Vec<BackupLog>>>,
+        ctx: &egui::Context,
+    ) {
+        let max_attempts = options.max_attempts.max(1);
+        let target = format!("{} ({})", device.name, device.ip);
+        let job_id = db::get_connection().ok().and_then(|conn| {
+            db::jobs::enqueue(
+                &conn,
+                "backup.running_config",
+                &target,
+                max_attempts as i64,
+                options.details,
+            )
+            .ok()
+        });
+
+        let mut ok = false;
+        let mut final_status = "Backup not attempted".to_string();
+
+        for attempt in 1..=max_attempts {
+            if let Some(job_id) = job_id
+                && let Ok(conn) = db::get_connection()
+            {
+                let _ = db::jobs::mark_running(&conn, job_id);
+            }
+
+            let (attempt_ok, status_msg) = Self::run_backup(
+                device.id,
+                &device.ip,
+                &device.user,
+                &device.enc_cred,
+                master_pass,
+                options.timeout_secs,
+                options.retention_keep,
+            );
+
+            final_status = format!("Attempt {attempt}/{max_attempts}: {status_msg}");
+            if attempt_ok {
+                ok = true;
+                break;
+            }
+
+            if attempt < max_attempts {
+                thread::sleep(Duration::from_secs(2));
+            }
+        }
+
+        if let Some(job_id) = job_id
+            && let Ok(conn) = db::get_connection()
+        {
+            if ok {
+                let _ = db::jobs::mark_succeeded(&conn, job_id, &final_status);
+            } else {
+                let _ = db::jobs::mark_failed(&conn, job_id, &final_status, "");
+            }
+        }
+
+        Self::append_log(logs, &device.name, &final_status);
+        db::record_audit(
+            "backup.running_config",
+            &device.ip,
+            if ok { "success" } else { "failed" },
+            &final_status,
+        );
+        ctx.request_repaint();
+    }
+
+    fn run_backup_cycle(
+        ctx: &egui::Context,
+        logs: &Arc<Mutex<Vec<BackupLog>>>,
+        master_pass: &str,
+        options: &BackupRunOptions,
+    ) {
+        let devices = Self::fetch_devices();
+        if devices.is_empty() {
+            Self::append_log(logs, "Inventory", "No devices found for backup");
+            return;
+        }
+
+        for device in devices {
+            Self::execute_device_backup(device, master_pass, options, logs, ctx);
         }
     }
 
@@ -95,6 +257,15 @@ impl BackupTool {
         let logs = self.logs.clone();
         let m_pass = self.master_pass.clone();
         let interval = self.interval_hours as u64;
+        let max_attempts = self.max_attempts;
+        let timeout_secs = self.timeout_secs;
+        let retention_keep = self.retention_keep;
+        let options = BackupRunOptions {
+            max_attempts,
+            timeout_secs,
+            retention_keep,
+            details: "Scheduled running-config backup",
+        };
 
         if let Ok(mut lock) = is_running.lock() {
             if *lock {
@@ -111,72 +282,40 @@ impl BackupTool {
                     break;
                 }
 
-                let mut devices = Vec::new();
-                if let Ok(conn) = db::get_connection()
-                    && let Ok(mut stmt) = conn.prepare(
-                        "SELECT id, name, ip_address, username, encrypted_credentials FROM devices",
-                    )
-                    && let Ok(iter) = stmt.query_map([], |row| {
-                        Ok((
-                            row.get::<_, i32>(0)?,
-                            row.get::<_, String>(1)?,
-                            row.get::<_, String>(2)?,
-                            row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                            row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-                        ))
-                    })
-                {
-                    for dev in iter.flatten() {
-                        devices.push(dev);
-                    }
-                }
-
-                for (id, name, ip, user, enc_cred) in devices {
-                    let target = format!("{name} ({ip})");
-                    let job_id = db::get_connection().ok().and_then(|conn| {
-                        let job_id = db::jobs::enqueue(
-                            &conn,
-                            "backup.running_config",
-                            &target,
-                            1,
-                            "Scheduled running-config backup",
-                        )
-                        .ok()?;
-                        let _ = db::jobs::mark_running(&conn, job_id);
-                        Some(job_id)
-                    });
-
-                    let (ok, status_msg) = Self::run_backup(id, &ip, &user, &enc_cred, &m_pass);
-
-                    if let Some(job_id) = job_id
-                        && let Ok(conn) = db::get_connection()
-                    {
-                        if ok {
-                            let _ = db::jobs::mark_succeeded(&conn, job_id, &status_msg);
-                        } else {
-                            let _ = db::jobs::mark_failed(&conn, job_id, &status_msg, "");
-                        }
-                    }
-
-                    if let Ok(mut l) = logs.lock() {
-                        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-                        l.push(BackupLog {
-                            time: now,
-                            device: name.clone(),
-                            status: status_msg.clone(),
-                        });
-                    }
-                    db::record_audit(
-                        "backup.running_config",
-                        &ip,
-                        if ok { "success" } else { "failed" },
-                        &status_msg,
-                    );
-                    ctx.request_repaint();
-                }
+                Self::run_backup_cycle(&ctx, &logs, &m_pass, &options);
 
                 thread::sleep(Duration::from_secs(interval * 3600));
             }
+        });
+    }
+
+    fn start_manual_backup(&mut self, ctx: egui::Context) {
+        let is_manual_running = self.is_manual_running.clone();
+        let logs = self.logs.clone();
+        let master_pass = self.master_pass.clone();
+        let max_attempts = self.max_attempts;
+        let timeout_secs = self.timeout_secs;
+        let retention_keep = self.retention_keep;
+        let options = BackupRunOptions {
+            max_attempts,
+            timeout_secs,
+            retention_keep,
+            details: "Manual running-config backup",
+        };
+
+        if let Ok(mut lock) = is_manual_running.lock() {
+            if *lock {
+                return;
+            }
+            *lock = true;
+        }
+
+        thread::spawn(move || {
+            Self::run_backup_cycle(&ctx, &logs, &master_pass, &options);
+            if let Ok(mut lock) = is_manual_running.lock() {
+                *lock = false;
+            }
+            ctx.request_repaint();
         });
     }
 
@@ -253,9 +392,60 @@ impl ToolScreen for BackupTool {
             );
         });
 
+        ui.horizontal_wrapped(|ui| {
+            ui.label(text(dil, "Max attempts:", "Maksimum deneme:"));
+            ui.add(
+                egui::DragValue::new(&mut self.max_attempts)
+                    .speed(1)
+                    .range(1..=5),
+            );
+
+            ui.label(text(dil, "SSH timeout (sec):", "SSH timeout (sn):"));
+            ui.add(
+                egui::DragValue::new(&mut self.timeout_secs)
+                    .speed(1)
+                    .range(3..=120),
+            );
+
+            ui.label(text(
+                dil,
+                "Keep snapshots/device:",
+                "Cihaz basina snapshot:",
+            ));
+            ui.add(
+                egui::DragValue::new(&mut self.retention_keep)
+                    .speed(1)
+                    .range(1..=500),
+            );
+        });
+
         ui.add_space(10.0);
 
         let running = *self.is_running.lock().unwrap();
+        let manual_running = *self.is_manual_running.lock().unwrap();
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(
+                    !manual_running,
+                    egui::Button::new(text(dil, "Run backup now", "Simdi backup calistir")),
+                )
+                .clicked()
+            {
+                self.start_manual_backup(ui.ctx().clone());
+            }
+
+            if manual_running {
+                ui.label(
+                    egui::RichText::new(text(
+                        dil,
+                        "Manual backup is running...",
+                        "Manuel backup calisiyor...",
+                    ))
+                    .color(egui::Color32::YELLOW),
+                );
+            }
+        });
+
         if running {
             ui.label(
                 egui::RichText::new(text(

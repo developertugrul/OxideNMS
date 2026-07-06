@@ -64,6 +64,25 @@ pub fn save_config(conn: &Connection, device_id: i64, config_text: &str) -> Resu
     Ok(conn.last_insert_rowid())
 }
 
+/// Belirli bir cihaz icin en yeni N config kaydini tutar, eskileri siler.
+pub fn prune_config_history(conn: &Connection, device_id: i64, keep_latest: i64) -> Result<usize> {
+    if keep_latest <= 0 {
+        return Ok(0);
+    }
+
+    conn.execute(
+        "DELETE FROM config_gecmisi
+         WHERE device_id = ?1
+           AND id NOT IN (
+               SELECT id FROM config_gecmisi
+               WHERE device_id = ?1
+               ORDER BY id DESC
+               LIMIT ?2
+           )",
+        params![device_id, keep_latest],
+    )
+}
+
 /// Belirli bir cihaza ait config geçmişini (yeniden eskiye) listeler.
 pub fn get_config_history(conn: &Connection, device_id: i64) -> Result<Vec<ConfigHistory>> {
     let mut stmt = conn.prepare(
@@ -87,4 +106,34 @@ pub fn get_config_history(conn: &Connection, device_id: i64) -> Result<Vec<Confi
         gecmis.push(c?);
     }
     Ok(gecmis)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn memory_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        crate::db::initialize_schema(&conn).unwrap();
+        conn
+    }
+
+    #[test]
+    fn prune_config_history_keeps_latest_snapshots() {
+        let conn = memory_db();
+        let device_id = add_device(&conn, "R1", "192.0.2.10").unwrap();
+
+        save_config(&conn, device_id, "version 1").unwrap();
+        save_config(&conn, device_id, "version 2").unwrap();
+        save_config(&conn, device_id, "version 3").unwrap();
+
+        let deleted = prune_config_history(&conn, device_id, 2).unwrap();
+        let history = get_config_history(&conn, device_id).unwrap();
+
+        assert_eq!(deleted, 1);
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].config_text, "version 3");
+        assert_eq!(history[1].config_text, "version 2");
+    }
 }
