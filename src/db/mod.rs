@@ -1,5 +1,6 @@
 pub mod devices;
 pub mod jobs;
+pub mod syslog;
 
 use rusqlite::{Connection, OptionalExtension, Result, params};
 use std::path::PathBuf;
@@ -115,6 +116,24 @@ pub fn initialize_schema(conn: &Connection) -> Result<()> {
             details TEXT,
             last_error TEXT
         )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS syslog_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            source_ip TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            message TEXT NOT NULL,
+            raw_message TEXT NOT NULL
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_syslog_events_received_at
+         ON syslog_events(received_at)",
         [],
     )?;
 

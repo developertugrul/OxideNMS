@@ -1,35 +1,35 @@
+use crate::db;
 use crate::gui::tools::{ToolEvent, ToolScreen};
 use crate::i18n::{Language, text};
-use chrono::{DateTime, Local};
 use eframe::egui;
 use std::net::UdpSocket;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Clone)]
-struct SyslogMsg {
-    timestamp: DateTime<Local>,
-    source_ip: String,
-    message: String,
-    severity: String,
-}
-
 pub struct SyslogTool {
-    messages: Arc<Mutex<Vec<SyslogMsg>>>,
     is_running: Arc<Mutex<bool>>,
     bind_port: u16,
     status_msg: String,
     auto_scroll: bool,
+    source_filter: String,
+    severity_filter: String,
+    text_filter: String,
+    event_limit: i32,
+    export_status: String,
 }
 
 impl Default for SyslogTool {
     fn default() -> Self {
         Self {
-            messages: Arc::new(Mutex::new(Vec::new())),
             is_running: Arc::new(Mutex::new(false)),
             bind_port: 514,
             status_msg: "Stopped".to_string(),
             auto_scroll: true,
+            source_filter: String::new(),
+            severity_filter: String::new(),
+            text_filter: String::new(),
+            event_limit: 200,
+            export_status: String::new(),
         }
     }
 }
@@ -61,7 +61,6 @@ impl SyslogTool {
         self.status_msg = format!("Listening on port {}...", self.bind_port);
         *self.is_running.lock().unwrap() = true;
 
-        let messages_clone = self.messages.clone();
         let running_clone = self.is_running.clone();
 
         thread::spawn(move || {
@@ -98,19 +97,14 @@ impl SyslogTool {
                             msg_body = raw_msg[end_idx + 1..].trim().to_string();
                         }
 
-                        let log_entry = SyslogMsg {
-                            timestamp: Local::now(),
-                            source_ip: src.ip().to_string(),
-                            severity,
-                            message: msg_body,
-                        };
+                        let source_ip = src.ip().to_string();
 
-                        if let Ok(mut lock) = messages_clone.lock() {
-                            lock.push(log_entry);
-                            if lock.len() > 1000 {
-                                lock.remove(0);
-                            }
+                        if let Ok(conn) = db::get_connection() {
+                            let _ = db::syslog::save_event(
+                                &conn, &source_ip, &severity, &msg_body, &raw_msg,
+                            );
                         }
+
                         ctx.request_repaint();
                     }
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -130,6 +124,45 @@ impl SyslogTool {
         }
         self.status_msg = "Stopped".to_string();
     }
+
+    fn persisted_events(&self) -> Vec<db::syslog::SyslogEvent> {
+        let Ok(conn) = db::get_connection() else {
+            return Vec::new();
+        };
+
+        db::syslog::search(
+            &conn,
+            &self.source_filter,
+            &self.severity_filter,
+            &self.text_filter,
+            self.event_limit as i64,
+        )
+        .unwrap_or_default()
+    }
+
+    fn copy_csv(&mut self, ctx: &egui::Context, events: &[db::syslog::SyslogEvent], dil: Language) {
+        let mut csv = String::from("id,received_at,source_ip,severity,message,raw_message\r\n");
+        for event in events {
+            csv.push_str(&format!(
+                "{},{},{},{},{},{}\r\n",
+                event.id,
+                csv_cell(&event.received_at),
+                csv_cell(&event.source_ip),
+                csv_cell(&event.severity),
+                csv_cell(&event.message),
+                csv_cell(&event.raw_message)
+            ));
+        }
+
+        ctx.copy_text(csv);
+        self.export_status =
+            text(dil, "CSV copied to clipboard.", "CSV panoya kopyalandi.").to_string();
+    }
+}
+
+fn csv_cell(value: &str) -> String {
+    let escaped = value.replace('"', "\"\"");
+    format!("\"{escaped}\"")
 }
 
 impl ToolScreen for SyslogTool {
@@ -175,11 +208,13 @@ impl ToolScreen for SyslogTool {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .button(text(dil, "Clear logs", "Loglari temizle"))
+                    .button(text(dil, "Clear filters", "Filtreleri temizle"))
                     .clicked()
-                    && let Ok(mut lock) = self.messages.lock()
                 {
-                    lock.clear();
+                    self.source_filter.clear();
+                    self.severity_filter.clear();
+                    self.text_filter.clear();
+                    self.export_status.clear();
                 }
                 ui.checkbox(
                     &mut self.auto_scroll,
@@ -190,13 +225,71 @@ impl ToolScreen for SyslogTool {
 
         ui.add_space(10.0);
         ui.separator();
+        ui.add_space(10.0);
+
+        ui.label(egui::RichText::new(text(dil, "Persisted events", "Kalici olaylar")).strong());
+        ui.horizontal_wrapped(|ui| {
+            ui.label(text(dil, "Source:", "Kaynak:"));
+            ui.add(
+                egui::TextEdit::singleline(&mut self.source_filter)
+                    .desired_width(130.0)
+                    .hint_text("192.0.2.10"),
+            );
+
+            ui.label(text(dil, "Severity:", "Seviye:"));
+            egui::ComboBox::from_id_salt("syslog_severity_filter")
+                .selected_text(if self.severity_filter.is_empty() {
+                    text(dil, "All", "Tumu")
+                } else {
+                    self.severity_filter.as_str()
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.severity_filter,
+                        String::new(),
+                        text(dil, "All", "Tumu"),
+                    );
+                    for severity in [
+                        "EMERG", "ALERT", "CRIT", "ERR", "WARNING", "NOTICE", "INFO", "DEBUG",
+                    ] {
+                        ui.selectable_value(
+                            &mut self.severity_filter,
+                            severity.to_string(),
+                            severity,
+                        );
+                    }
+                });
+
+            ui.label(text(dil, "Search:", "Ara:"));
+            ui.add(
+                egui::TextEdit::singleline(&mut self.text_filter)
+                    .desired_width(180.0)
+                    .hint_text("LINK-3-UPDOWN"),
+            );
+
+            ui.label(text(dil, "Limit:", "Limit:"));
+            ui.add(egui::DragValue::new(&mut self.event_limit).range(20..=5000));
+        });
+
+        let events = self.persisted_events();
+        ui.horizontal(|ui| {
+            ui.label(format!(
+                "{}: {}",
+                text(dil, "Loaded", "Yuklenen"),
+                events.len()
+            ));
+            if ui.button(text(dil, "Copy CSV", "CSV kopyala")).clicked() {
+                self.copy_csv(ui.ctx(), &events, dil);
+            }
+            if !self.export_status.is_empty() {
+                ui.label(egui::RichText::new(&self.export_status).weak());
+            }
+        });
 
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .stick_to_bottom(self.auto_scroll)
             .show(ui, |ui| {
-                let messages = self.messages.lock().unwrap().clone();
-
                 egui::Grid::new("syslog_grid")
                     .striped(true)
                     .spacing([15.0, 8.0])
@@ -207,11 +300,11 @@ impl ToolScreen for SyslogTool {
                         ui.label(egui::RichText::new(text(dil, "Message", "Mesaj")).strong());
                         ui.end_row();
 
-                        for msg in messages {
-                            ui.label(msg.timestamp.format("%Y-%m-%d %H:%M:%S").to_string());
-                            ui.label(&msg.source_ip);
+                        for event in &events {
+                            ui.label(&event.received_at);
+                            ui.label(&event.source_ip);
 
-                            let sev_color = match msg.severity.as_str() {
+                            let sev_color = match event.severity.as_str() {
                                 "EMERG" | "ALERT" | "CRIT" => egui::Color32::RED,
                                 "ERR" => egui::Color32::LIGHT_RED,
                                 "WARNING" => egui::Color32::YELLOW,
@@ -219,8 +312,8 @@ impl ToolScreen for SyslogTool {
                                 _ => ui.visuals().text_color(),
                             };
 
-                            ui.label(egui::RichText::new(&msg.severity).color(sev_color));
-                            ui.label(&msg.message);
+                            ui.label(egui::RichText::new(&event.severity).color(sev_color));
+                            ui.label(&event.message);
                             ui.end_row();
                         }
                     });
