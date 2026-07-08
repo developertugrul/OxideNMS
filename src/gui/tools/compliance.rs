@@ -5,6 +5,7 @@
 //! mantığı `network::compliance` domaininde; bu ekran sadece okur ve çizer.
 
 use eframe::egui;
+use egui_plot::{Line, Plot, PlotPoints};
 
 use super::{ToolEvent, ToolScreen};
 use crate::db;
@@ -25,6 +26,7 @@ struct DisplayRow {
 pub struct ComplianceTool {
     fleet: Option<FleetPosture>,
     rows: Vec<DisplayRow>,
+    history: Vec<db::compliance::ScorePoint>,
     status: String,
 }
 
@@ -33,6 +35,7 @@ impl Default for ComplianceTool {
         let mut tool = Self {
             fleet: None,
             rows: Vec::new(),
+            history: Vec::new(),
             status: String::new(),
         };
         tool.refresh();
@@ -88,12 +91,31 @@ impl ComplianceTool {
         }
         self.rows.sort_by_key(|r| r.score); // en riskli (düşük skor) başta
 
+        self.history = db::compliance::fleet_history(&conn, 60).unwrap_or_default();
+
         self.status = if configs.is_empty() {
             "No stored device configurations found. Use Backup to store configs first.".to_string()
         } else {
             format!("{} device(s) audited.", configs.len())
         };
         self.fleet = Some(fleet);
+    }
+
+    /// Mevcut filo posture'unu geçmişe (DB) kaydeder ve trend'i günceller.
+    fn record_snapshot(&mut self) {
+        let Some(fleet) = &self.fleet else {
+            return;
+        };
+        let Ok(conn) = db::get_connection() else {
+            self.status = "Database connection failed.".to_string();
+            return;
+        };
+        if let Err(e) = db::compliance::record_run(&conn, fleet) {
+            self.status = format!("Snapshot failed: {e}");
+            return;
+        }
+        self.history = db::compliance::fleet_history(&conn, 60).unwrap_or_default();
+        self.status = format!("Snapshot recorded ({} points).", self.history.len());
     }
 }
 
@@ -124,7 +146,15 @@ impl ToolScreen for ComplianceTool {
             if ui.button(text(dil, "Refresh", "Yenile")).clicked() {
                 self.refresh();
             }
-            if self.fleet.as_ref().is_some_and(|f| f.device_count() > 0)
+            let has_devices = self.fleet.as_ref().is_some_and(|f| f.device_count() > 0);
+            if has_devices
+                && ui
+                    .button(text(dil, "Record snapshot", "Snapshot kaydet"))
+                    .clicked()
+            {
+                self.record_snapshot();
+            }
+            if has_devices
                 && ui
                     .button(text(dil, "Copy fleet report", "Filo raporunu kopyala"))
                     .clicked()
@@ -151,6 +181,39 @@ impl ToolScreen for ComplianceTool {
         // Filo özet kartı.
         fleet_karti(ui, dil, fleet);
         ui.add_space(10.0);
+
+        // Duruş trendi: zaman içinde filo skoru (kaydedilmiş snapshot'lar).
+        if self.history.len() >= 2 {
+            ui.label(egui::RichText::new(text(dil, "Posture trend", "Duruş trendi")).strong());
+            let pts: Vec<[f64; 2]> = self
+                .history
+                .iter()
+                .enumerate()
+                .map(|(i, p)| [i as f64, p.score as f64])
+                .collect();
+            Plot::new("compliance_trend")
+                .height(150.0)
+                .include_y(0.0)
+                .include_y(105.0)
+                .show(ui, |plot_ui| {
+                    plot_ui.line(
+                        Line::new(PlotPoints::from(pts))
+                            .name(text(dil, "Fleet score", "Filo skoru")),
+                    );
+                });
+        } else {
+            ui.label(
+                egui::RichText::new(text(
+                    dil,
+                    "Record snapshots over time to see the posture trend.",
+                    "Trendi görmek için zamanla snapshot kaydedin.",
+                ))
+                .small()
+                .weak(),
+            );
+        }
+
+        ui.add_space(8.0);
         ui.separator();
         ui.add_space(8.0);
 

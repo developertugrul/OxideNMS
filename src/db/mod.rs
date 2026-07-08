@@ -1,3 +1,4 @@
+pub mod compliance;
 pub mod devices;
 pub mod jobs;
 pub mod syslog;
@@ -134,6 +135,26 @@ pub fn initialize_schema(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_syslog_events_received_at
          ON syslog_events(received_at)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS compliance_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            scope TEXT NOT NULL,
+            device_name TEXT,
+            score INTEGER NOT NULL,
+            critical INTEGER NOT NULL,
+            warning INTEGER NOT NULL,
+            info INTEGER NOT NULL
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_compliance_snapshots_scope
+         ON compliance_snapshots(scope, id)",
         [],
     )?;
 
