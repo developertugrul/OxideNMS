@@ -3,6 +3,7 @@
 //! Bu katman arayuzden bagimsizdir. Ekrana bir sey yazmaz, dosya okumaz;
 //! sadece "verilen ag verisinden dogru sonucu uretir".
 
+pub mod compliance;
 pub mod diff;
 pub mod discovery;
 pub mod security;

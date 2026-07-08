@@ -9,7 +9,7 @@
 use eframe::egui;
 
 use super::{ToolEvent, ToolScreen};
-use crate::i18n::{Language, Message, t};
+use crate::i18n::{Language, Message, t, text};
 use crate::network::security::{self, Finding, FindingCode, Level};
 
 /// Örnek (riskli) bir config — kullanıcı ilk açtığında aracı hemen denesin diye.
@@ -23,6 +23,7 @@ username admin password admin
 ip ssh version 1
 !
 line vty 0 4
+ exec-timeout 0 0
  transport input telnet
  login
 !
@@ -92,6 +93,10 @@ impl ToolScreen for SecurityTool {
                     t(dil, Message::SecNoIssues),
                 );
             } else {
+                // Güvenlik duruşu skoru (profesyonel özet kartı).
+                skor_karti(ui, dil, &security::summarize(&self.bulgular));
+                ui.add_space(6.0);
+
                 let ozet =
                     t(dil, Message::SecFindings).replace("{0}", &self.bulgular.len().to_string());
                 ui.label(egui::RichText::new(ozet).strong());
@@ -142,7 +147,56 @@ impl SecurityTool {
                     .weak(),
             );
         }
+
+        // Çerçeve referansı ve örnek düzeltme komutu (profesyonel dokunuş).
+        ui.label(
+            egui::RichText::new(format!("↳ {}", b.code.reference()))
+                .small()
+                .weak(),
+        );
+        ui.label(
+            egui::RichText::new(format!("$ {}", b.code.remediation()))
+                .monospace()
+                .small()
+                .color(egui::Color32::from_rgb(120, 170, 120)),
+        );
     }
+}
+
+/// Güvenlik duruşu skor kartı: renkli skor/not + seviye sayıları.
+fn skor_karti(ui: &mut egui::Ui, dil: Language, s: &security::AuditSummary) {
+    let renk = match s.grade {
+        "A" | "B" => egui::Color32::from_rgb(90, 190, 90),
+        "C" => egui::Color32::from_rgb(210, 190, 70),
+        "D" => egui::Color32::from_rgb(220, 150, 60),
+        _ => egui::Color32::from_rgb(220, 80, 80),
+    };
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            ui.label(
+                egui::RichText::new(text(dil, "Security posture:", "Güvenlik duruşu:")).strong(),
+            );
+            ui.label(
+                egui::RichText::new(format!("{}/100  ({})", s.score, s.grade))
+                    .size(20.0)
+                    .strong()
+                    .color(renk),
+            );
+            ui.separator();
+            ui.label(
+                egui::RichText::new(format!("● {}", s.critical))
+                    .color(egui::Color32::from_rgb(220, 80, 80)),
+            );
+            ui.label(
+                egui::RichText::new(format!("● {}", s.warning))
+                    .color(egui::Color32::from_rgb(220, 150, 60)),
+            );
+            ui.label(
+                egui::RichText::new(format!("● {}", s.info))
+                    .color(egui::Color32::from_rgb(150, 150, 150)),
+            );
+        });
+    });
 }
 
 /// Seviyenin ekran etiketi ve rengi.
@@ -179,6 +233,17 @@ fn bulgu_baslik(dil: Language, code: FindingCode) -> &'static str {
         FindingCode::LinePasswordless => t(dil, Message::SecTitleLinePasswordless),
         FindingCode::NoLogging => t(dil, Message::SecTitleNoLogging),
         FindingCode::NoNtpAuth => t(dil, Message::SecTitleNoNtpAuth),
+        // Yeni kurallar (şimdilik EN/TR; ileride tam i18n'e taşınabilir).
+        FindingCode::ExecTimeoutDisabled => text(
+            dil,
+            "Session timeout disabled",
+            "Oturum zaman aşımı kapalı",
+        ),
+        FindingCode::NoAaaNewModel => text(dil, "AAA not enabled", "AAA etkin değil"),
+        FindingCode::NoLoginBanner => text(dil, "No login banner", "Giriş banner'ı yok"),
+        FindingCode::WeakEnableSecretType => {
+            text(dil, "Weak enable secret type", "Zayıf enable secret tipi")
+        }
     }
 }
 
@@ -198,5 +263,26 @@ fn bulgu_oneri(dil: Language, code: FindingCode) -> &'static str {
         FindingCode::LinePasswordless => t(dil, Message::SecAdviceLinePasswordless),
         FindingCode::NoLogging => t(dil, Message::SecAdviceNoLogging),
         FindingCode::NoNtpAuth => t(dil, Message::SecAdviceNoNtpAuth),
+        // Yeni kurallar (şimdilik EN/TR).
+        FindingCode::ExecTimeoutDisabled => text(
+            dil,
+            "'exec-timeout 0 0' keeps sessions open forever. Set a timeout, e.g. 'exec-timeout 10 0'.",
+            "'exec-timeout 0 0' oturumu hiç kapatmaz. Bir zaman aşımı verin, örn: 'exec-timeout 10 0'.",
+        ),
+        FindingCode::NoAaaNewModel => text(
+            dil,
+            "No 'aaa new-model'. Enable AAA for centralized authentication and accounting.",
+            "'aaa new-model' yok. Merkezi kimlik doğrulama/kayıt için AAA'yı etkinleştirin.",
+        ),
+        FindingCode::NoLoginBanner => text(
+            dil,
+            "No banner configured. Add a legal 'banner login/motd' warning against unauthorized access.",
+            "Banner yok. Yetkisiz erişime karşı yasal bir 'banner login/motd' uyarısı ekleyin.",
+        ),
+        FindingCode::WeakEnableSecretType => text(
+            dil,
+            "'enable secret 5' is MD5. Prefer type 8 (PBKDF2) or type 9 (scrypt).",
+            "'enable secret 5' MD5'tir. Tip 8 (PBKDF2) veya tip 9 (scrypt) tercih edin.",
+        ),
     }
 }
