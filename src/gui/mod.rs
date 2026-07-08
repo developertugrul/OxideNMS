@@ -13,9 +13,10 @@ use eframe::egui;
 pub mod tools;
 
 use tools::{
-    AuditLogTool, BackupTool, BulkDeployTool, ConfigHistoryTool, DashboardTool, DeviceManagerTool,
-    DiffTool, DiscoveryTool, FirmwareTool, SecurityTool, SettingsTool, SnmpMapTool, SshTool,
-    SubnetTool, SyslogTool, TemplateTool, ToolEvent, ToolScreen, TopologyTool, VlanTool,
+    AuditLogTool, BackupTool, BulkDeployTool, ComplianceTool, ConfigHistoryTool, DashboardTool,
+    DeviceManagerTool, DiffTool, DiscoveryTool, FirmwareTool, SecurityTool, SettingsTool,
+    SnmpMapTool, SshTool, SubnetTool, SyslogTool, TemplateTool, ToolEvent, ToolScreen, TopologyTool,
+    VlanTool,
 };
 
 use crate::i18n::{Language, Message, t, text};
@@ -185,6 +186,7 @@ impl CiscoApp {
                 Box::new(DeviceManagerTool::default()),
                 Box::new(DiscoveryTool::default()),
                 Box::new(SecurityTool::default()),
+                Box::new(ComplianceTool::default()),
                 Box::new(BackupTool::default()),
                 Box::new(ConfigHistoryTool::default()),
                 Box::new(BulkDeployTool::default()),
